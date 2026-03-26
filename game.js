@@ -1,6 +1,6 @@
 /* ============================================================
-   RETRO BASEBALL  –  game.js
-   完全アニメーション野球ゲーム
+   RETRO BASEBALL  –  game.js  v2.0
+   演出全面リニューアル版
    ============================================================ */
 
 "use strict";
@@ -9,46 +9,46 @@
 // 1. 選手データ
 // ============================================================
 const PLAYER_POOL = [
-  // 名前, パワー(0-100), ミート(0-100), 走力(0-100), 投球(0-100), 守備(0-100)
-  { name:"王 貞治",       pow:98, meet:90, spd:70, pitch:40, def:80 },
-  { name:"長嶋 茂雄",     pow:85, meet:95, spd:85, pitch:35, def:90 },
-  { name:"大谷 翔平",     pow:99, meet:88, spd:90, pitch:99, def:85 },
-  { name:"イチロー",      pow:65, meet:99, spd:99, pitch:30, def:99 },
-  { name:"松井 秀喜",     pow:95, meet:85, spd:70, pitch:30, def:80 },
-  { name:"野茂 英雄",     pow:50, meet:40, spd:55, pitch:97, def:70 },
-  { name:"江夏 豊",       pow:55, meet:50, spd:50, pitch:95, def:72 },
-  { name:"金田 正一",     pow:52, meet:48, spd:52, pitch:96, def:68 },
-  { name:"ベーブ・ルース", pow:99, meet:85, spd:60, pitch:90, def:75 },
-  { name:"ルー・ゲーリッグ",pow:97,meet:88, spd:65, pitch:20, def:85 },
-  { name:"ハンク・アーロン",pow:96,meet:90, spd:75, pitch:20, def:88 },
-  { name:"ウィリー・メイズ",pow:90,meet:92, spd:95, pitch:20, def:99 },
-  { name:"テッド・ウィリアムズ",pow:88,meet:97,spd:72,pitch:20,def:78 },
-  { name:"マイク・トラウト",pow:93,meet:91, spd:92, pitch:20, def:92 },
-  { name:"ケン・グリフィーJr",pow:94,meet:89,spd:88,pitch:20,def:97 },
-  { name:"ロジャー・クレメンス",pow:55,meet:45,spd:50,pitch:98,def:70 },
+  { name:"王 貞治",              pow:98, meet:90, spd:70, pitch:40, def:80 },
+  { name:"長嶋 茂雄",            pow:85, meet:95, spd:85, pitch:35, def:90 },
+  { name:"大谷 翔平",            pow:99, meet:88, spd:90, pitch:99, def:85 },
+  { name:"イチロー",             pow:65, meet:99, spd:99, pitch:30, def:99 },
+  { name:"松井 秀喜",            pow:95, meet:85, spd:70, pitch:30, def:80 },
+  { name:"野茂 英雄",            pow:50, meet:40, spd:55, pitch:97, def:70 },
+  { name:"江夏 豊",              pow:55, meet:50, spd:50, pitch:95, def:72 },
+  { name:"金田 正一",            pow:52, meet:48, spd:52, pitch:96, def:68 },
+  { name:"ベーブ・ルース",       pow:99, meet:85, spd:60, pitch:90, def:75 },
+  { name:"ルー・ゲーリッグ",     pow:97, meet:88, spd:65, pitch:20, def:85 },
+  { name:"ハンク・アーロン",     pow:96, meet:90, spd:75, pitch:20, def:88 },
+  { name:"ウィリー・メイズ",     pow:90, meet:92, spd:95, pitch:20, def:99 },
+  { name:"テッド・ウィリアムズ", pow:88, meet:97, spd:72, pitch:20, def:78 },
+  { name:"マイク・トラウト",     pow:93, meet:91, spd:92, pitch:20, def:92 },
+  { name:"ケン・グリフィーJr",   pow:94, meet:89, spd:88, pitch:20, def:97 },
+  { name:"ロジャー・クレメンス", pow:55, meet:45, spd:50, pitch:98, def:70 },
   { name:"サンディ・コーファックス",pow:48,meet:42,spd:48,pitch:99,def:65 },
-  { name:"ランディ・ジョンソン",pow:52,meet:40,spd:52,pitch:98,def:68 },
-  { name:"マリアノ・リベラ",pow:45,meet:38,spd:50,pitch:97,def:72 },
-  { name:"田中 将大",     pow:50, meet:45, spd:55, pitch:94, def:75 },
-  { name:"松坂 大輔",     pow:52, meet:44, spd:54, pitch:93, def:73 },
-  { name:"山本 由伸",     pow:55, meet:48, spd:58, pitch:96, def:78 },
-  { name:"清原 和博",     pow:97, meet:83, spd:68, pitch:20, def:82 },
-  { name:"落合 博満",     pow:88, meet:98, spd:65, pitch:20, def:80 },
-  { name:"張本 勲",       pow:80, meet:97, spd:80, pitch:20, def:85 },
-  { name:"秋山 幸二",     pow:87, meet:86, spd:90, pitch:20, def:95 },
-  { name:"福本 豊",       pow:60, meet:85, spd:99, pitch:20, def:92 },
-  { name:"山田 哲人",     pow:85, meet:90, spd:92, pitch:20, def:90 },
-  { name:"村上 宗隆",     pow:96, meet:87, spd:72, pitch:20, def:80 },
-  { name:"佐々木 朗希",   pow:50, meet:42, spd:55, pitch:98, def:72 },
+  { name:"ランディ・ジョンソン", pow:52, meet:40, spd:52, pitch:98, def:68 },
+  { name:"田中 将大",            pow:50, meet:45, spd:55, pitch:94, def:75 },
+  { name:"松坂 大輔",            pow:52, meet:44, spd:54, pitch:93, def:73 },
+  { name:"山本 由伸",            pow:55, meet:48, spd:58, pitch:96, def:78 },
+  { name:"清原 和博",            pow:97, meet:83, spd:68, pitch:20, def:82 },
+  { name:"落合 博満",            pow:88, meet:98, spd:65, pitch:20, def:80 },
+  { name:"張本 勲",              pow:80, meet:97, spd:80, pitch:20, def:85 },
+  { name:"秋山 幸二",            pow:87, meet:86, spd:90, pitch:20, def:95 },
+  { name:"福本 豊",              pow:60, meet:85, spd:99, pitch:20, def:92 },
+  { name:"山田 哲人",            pow:85, meet:90, spd:92, pitch:20, def:90 },
+  { name:"村上 宗隆",            pow:96, meet:87, spd:72, pitch:20, def:80 },
+  { name:"佐々木 朗希",          pow:50, meet:42, spd:55, pitch:98, def:72 },
 ];
 
 // ============================================================
 // 2. ユーティリティ
 // ============================================================
-const rnd  = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
-const pick = arr => arr[rnd(0, arr.length - 1)];
+const rnd   = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
+const pick  = arr => arr[rnd(0, arr.length - 1)];
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+const lerp  = (a, b, t) => a + (b - a) * t;
+const easeOut = t => 1 - Math.pow(1 - t, 2);
 
 function shuffle(arr) {
   const a = [...arr];
@@ -62,24 +62,19 @@ function shuffle(arr) {
 // ============================================================
 // 3. チーム生成
 // ============================================================
-function buildTeam(name, color) {
-  const pool = shuffle(PLAYER_POOL);
-  // 投手1名 + 野手8名 = 9名
-  // 投球能力が高い選手を投手に
+function buildTeam(name, color, uniformColor) {
+  const pool   = shuffle(PLAYER_POOL);
   const sorted = [...pool].sort((a, b) => b.pitch - a.pitch);
   const pitcher = sorted[0];
   const batters = pool.filter(p => p !== pitcher).slice(0, 8);
-  const roster  = [pitcher, ...batters];
   return {
-    name,
-    color,
-    roster,
+    name, color, uniformColor,
+    roster: [pitcher, ...batters],
     pitcher,
     batterIdx: 0,
-    scores: Array(9).fill(null),   // イニング得点
+    scores: Array(9).fill(null),
     totalRuns: 0,
     hits: 0,
-    errors: 0,
   };
 }
 
@@ -88,391 +83,549 @@ function buildTeam(name, color) {
 // ============================================================
 const G = {
   teams: [],
-  inning: 1,       // 1〜9
-  half: 0,         // 0=表, 1=裏
+  inning: 1,
+  half: 0,
   outs: 0,
   balls: 0,
   strikes: 0,
-  bases: [false, false, false],  // 1塁, 2塁, 3塁
-  phase: "IDLE",   // IDLE | PITCHING | SWINGING | RESULT | BETWEEN | GAMEOVER
-  animating: false,
+  bases: [false, false, false],
+  phase: "IDLE",
   gameStarted: false,
 };
 
-function attackTeam()  { return G.teams[G.half]; }
-function defenseTeam() { return G.teams[1 - G.half]; }
-function currentBatter() {
-  const t = attackTeam();
-  return t.roster[t.batterIdx % t.roster.length];
-}
-function currentPitcher() {
-  return defenseTeam().pitcher;
-}
+const attackTeam  = () => G.teams[G.half];
+const defenseTeam = () => G.teams[1 - G.half];
+const currentBatter  = () => { const t = attackTeam(); return t.roster[t.batterIdx % t.roster.length]; };
+const currentPitcher = () => defenseTeam().pitcher;
 
 // ============================================================
 // 5. Canvas セットアップ
 // ============================================================
 const canvas = document.getElementById("field-canvas");
 const ctx    = canvas.getContext("2d");
-const CW = canvas.width;   // 480
-const CH = canvas.height;  // 320
+const CW = canvas.width;
+const CH = canvas.height;
 
-// フィールド座標定数
-const FIELD = {
-  // ダイヤモンド中心
-  cx: CW * 0.5,
-  cy: CH * 0.62,
-  // 塁の位置（中心から）
-  base1: { x: CW * 0.72, y: CH * 0.62 },
-  base2: { x: CW * 0.5,  y: CH * 0.38 },
-  base3: { x: CW * 0.28, y: CH * 0.62 },
-  home:  { x: CW * 0.5,  y: CH * 0.86 },
-  // マウンド
-  mound: { x: CW * 0.5,  y: CH * 0.62 },
-  // バッターボックス
-  batter: { x: CW * 0.5 + 22, y: CH * 0.82 },
-  // 外野方向
-  outfield: { x: CW * 0.5, y: CH * 0.05 },
-  // スタンド（ホームラン着地）
-  stand: { x: CW * 0.5, y: -20 },
+// 座標定数（大きめキャラに合わせて調整）
+const POS = {
+  mound:   { x: CW * 0.50, y: CH * 0.52 },
+  batter:  { x: CW * 0.62, y: CH * 0.80 },
+  home:    { x: CW * 0.50, y: CH * 0.88 },
+  base1:   { x: CW * 0.74, y: CH * 0.62 },
+  base2:   { x: CW * 0.50, y: CH * 0.36 },
+  base3:   { x: CW * 0.26, y: CH * 0.62 },
+  outfield:{ x: CW * 0.50, y: CH * 0.04 },
 };
 
 // ============================================================
 // 6. アニメーション状態
 // ============================================================
 let anim = {
-  ball:    { x: 0, y: 0, visible: false, trail: [] },
-  pitcher: { x: 0, y: 0, frame: 0, state: "idle" },  // idle|windup|release
-  batter:  { x: 0, y: 0, frame: 0, state: "idle" },  // idle|ready|swing|miss
-  fielder: { x: 0, y: 0, visible: false, state: "idle" },
-  runners: [
-    { base: -1, x: 0, y: 0, visible: false },  // runner 0
-    { base: -1, x: 0, y: 0, visible: false },  // runner 1
-    { base: -1, x: 0, y: 0, visible: false },  // runner 2
-  ],
-  hitType: "",
+  ball: { x: 0, y: 0, visible: false, r: 7, trail: [] },
+  pitcher: { state: "idle", frame: 0 },   // idle | windup | release
+  batter:  { state: "idle", frame: 0 },   // idle | ready | swing | miss
+  fielder: { x: 0, y: 0, tx: 0, ty: 0, visible: false },
+  flash: { active: false, color: "#fff", alpha: 0 },
+  bigText: { text: "", alpha: 0, scale: 1, color: "#f5d800" },
   rafId: null,
 };
 
 // ============================================================
-// 7. 描画関数
+// 7. キャラクター描画（大きく・はっきり）
 // ============================================================
 
-function basePos(b) {
-  if (b === 0) return FIELD.base1;
-  if (b === 1) return FIELD.base2;
-  if (b === 2) return FIELD.base3;
-  return FIELD.home;
+/* ---- ピッチャー ---- */
+function drawPitcherChar(cx, cy, state, frame, teamColor) {
+  ctx.save();
+  ctx.translate(cx, cy);
+
+  const t = frame / 20;
+
+  // --- 投球モーションによる腕角度 ---
+  let armAngle = 0.3;   // アイドル
+  let legSpread = 0;
+
+  if (state === "windup") {
+    // 腕を大きく上げる
+    armAngle = -Math.PI * 0.8 - Math.sin(t * Math.PI) * 0.4;
+    legSpread = Math.sin(t * Math.PI) * 8;
+  } else if (state === "release") {
+    // 腕を前に振り下ろす
+    const rt = clamp(frame / 12, 0, 1);
+    armAngle = -Math.PI * 0.8 + rt * Math.PI * 1.5;
+    legSpread = 10;
+  }
+
+  // 足
+  ctx.fillStyle = "#222";
+  ctx.fillRect(-6, 28, 8, 10);   // 左足
+  ctx.fillRect(4 + legSpread, 28, 8, 10); // 右足（投球時に開く）
+
+  // 胴体
+  ctx.fillStyle = teamColor;
+  ctx.fillRect(-10, 4, 20, 26);
+
+  // ユニフォームライン
+  ctx.fillStyle = "rgba(255,255,255,0.3)";
+  ctx.fillRect(-2, 4, 4, 26);
+
+  // 頭
+  ctx.fillStyle = "#f5c090";
+  ctx.beginPath();
+  ctx.arc(0, -6, 11, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 帽子
+  ctx.fillStyle = teamColor;
+  ctx.beginPath();
+  ctx.ellipse(0, -10, 13, 6, 0, Math.PI, 0);
+  ctx.fill();
+  ctx.fillRect(-13, -14, 26, 7);
+  // つば
+  ctx.fillRect(-16, -8, 32, 4);
+
+  // 投球腕（右腕）
+  ctx.save();
+  ctx.translate(10, 10);
+  ctx.rotate(armAngle);
+  ctx.fillStyle = "#f5c090";
+  ctx.fillRect(-4, 0, 8, 22);
+  // ボールを持つ手
+  if (state !== "release" || frame < 8) {
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath();
+    ctx.arc(0, 24, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "#cc0000";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(0, 24, 5, 0.3, 1.2);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // グローブ腕（左腕）
+  ctx.save();
+  ctx.translate(-10, 10);
+  ctx.rotate(0.4);
+  ctx.fillStyle = "#f5c090";
+  ctx.fillRect(-4, 0, 8, 18);
+  // グローブ
+  ctx.fillStyle = "#8B4513";
+  ctx.beginPath();
+  ctx.arc(0, 20, 7, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  ctx.restore();
 }
 
-function drawField() {
-  // 背景
-  ctx.fillStyle = "#1a4a1a";
-  ctx.fillRect(0, 0, CW, CH);
+/* ---- バッター ---- */
+function drawBatterChar(cx, cy, state, frame, teamColor) {
+  ctx.save();
+  ctx.translate(cx, cy);
 
-  // 外野芝（縞模様）
-  for (let i = 0; i < 8; i++) {
-    ctx.fillStyle = i % 2 === 0 ? "#1a4a1a" : "#1e5420";
+  // スイング角度
+  let batAngle = -0.3;   // 構え
+  let batLength = 38;
+  let bodyLean = 0;
+
+  if (state === "ready") {
+    batAngle = -0.5;
+  } else if (state === "swing") {
+    const st = clamp(frame / 10, 0, 1);
+    batAngle = -0.5 + st * Math.PI * 1.1;
+    bodyLean = st * 0.3;
+  } else if (state === "miss") {
+    batAngle = Math.PI * 0.5;
+    bodyLean = 0.2;
+  }
+
+  // 足
+  ctx.fillStyle = "#222";
+  ctx.fillRect(-14, 28, 9, 10);
+  ctx.fillRect(2, 28, 9, 10);
+
+  // 胴体
+  ctx.save();
+  ctx.rotate(bodyLean);
+  ctx.fillStyle = teamColor;
+  ctx.fillRect(-10, 4, 20, 26);
+  // ユニフォームライン
+  ctx.fillStyle = "rgba(255,255,255,0.3)";
+  ctx.fillRect(-2, 4, 4, 26);
+  ctx.restore();
+
+  // 頭
+  ctx.fillStyle = "#f5c090";
+  ctx.beginPath();
+  ctx.arc(0, -6, 11, 0, Math.PI * 2);
+  ctx.fill();
+
+  // ヘルメット
+  ctx.fillStyle = teamColor;
+  ctx.beginPath();
+  ctx.arc(0, -10, 13, Math.PI, 0);
+  ctx.fill();
+  ctx.fillRect(-13, -12, 26, 6);
+  // つば（右向き）
+  ctx.fillRect(4, -8, 16, 4);
+
+  // バット
+  ctx.save();
+  ctx.translate(10, 8);
+  ctx.rotate(batAngle);
+  // グリップ
+  ctx.fillStyle = "#8B4513";
+  ctx.fillRect(-3, 0, 6, batLength * 0.35);
+  // バット本体
+  ctx.fillStyle = "#D2691E";
+  ctx.beginPath();
+  ctx.moveTo(-3, batLength * 0.3);
+  ctx.lineTo(3, batLength * 0.3);
+  ctx.lineTo(6, batLength);
+  ctx.lineTo(-6, batLength);
+  ctx.closePath();
+  ctx.fill();
+  // ハイライト
+  ctx.fillStyle = "rgba(255,255,255,0.3)";
+  ctx.fillRect(-1, batLength * 0.3, 2, batLength * 0.6);
+  ctx.restore();
+
+  // 腕（バットを持つ）
+  ctx.save();
+  ctx.translate(10, 8);
+  ctx.rotate(batAngle - 0.2);
+  ctx.fillStyle = "#f5c090";
+  ctx.fillRect(-4, 0, 8, 16);
+  ctx.restore();
+
+  ctx.restore();
+}
+
+/* ---- フィールダー（守備）---- */
+function drawFielderChar(fx, fy, teamColor) {
+  ctx.save();
+  ctx.translate(fx, fy);
+  ctx.scale(0.75, 0.75);
+
+  // 足
+  ctx.fillStyle = "#222";
+  ctx.fillRect(-5, 22, 6, 8);
+  ctx.fillRect(3, 22, 6, 8);
+
+  // 胴体
+  ctx.fillStyle = teamColor;
+  ctx.fillRect(-8, 3, 16, 20);
+
+  // 頭
+  ctx.fillStyle = "#f5c090";
+  ctx.beginPath();
+  ctx.arc(0, -5, 9, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 帽子
+  ctx.fillStyle = teamColor;
+  ctx.beginPath();
+  ctx.ellipse(0, -8, 11, 5, 0, Math.PI, 0);
+  ctx.fill();
+  ctx.fillRect(-11, -11, 22, 5);
+  ctx.fillRect(-14, -7, 28, 3);
+
+  // グローブを上げる
+  ctx.fillStyle = "#8B4513";
+  ctx.beginPath();
+  ctx.arc(-12, -2, 8, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+/* ---- ランナー ---- */
+function drawRunnerChar(rx, ry, teamColor) {
+  ctx.save();
+  ctx.translate(rx, ry);
+  ctx.scale(0.65, 0.65);
+
+  ctx.fillStyle = "#222";
+  ctx.fillRect(-4, 20, 5, 7);
+  ctx.fillRect(3, 20, 5, 7);
+
+  ctx.fillStyle = teamColor;
+  ctx.fillRect(-7, 2, 14, 18);
+
+  ctx.fillStyle = "#f5c090";
+  ctx.beginPath();
+  ctx.arc(0, -4, 8, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = teamColor;
+  ctx.beginPath();
+  ctx.ellipse(0, -7, 10, 4, 0, Math.PI, 0);
+  ctx.fill();
+  ctx.fillRect(-10, -9, 20, 4);
+
+  ctx.restore();
+}
+
+// ============================================================
+// 8. フィールド描画
+// ============================================================
+function drawField() {
+  // 空・背景
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, CH * 0.4);
+  skyGrad.addColorStop(0, "#1a3a6a");
+  skyGrad.addColorStop(1, "#2a5a9a");
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0, 0, CW, CH * 0.4);
+
+  // スタンド（観客席）
+  ctx.fillStyle = "#3a2a1a";
+  ctx.fillRect(0, CH * 0.28, CW, CH * 0.15);
+  // 観客ドット
+  for (let row = 0; row < 3; row++) {
+    for (let col = 0; col < 24; col++) {
+      const colors = ["#cc4444","#4444cc","#44cc44","#cccc44","#cc44cc","#44cccc"];
+      ctx.fillStyle = colors[(row * 7 + col) % colors.length];
+      ctx.beginPath();
+      ctx.arc(col * (CW / 23) + rnd(-2, 2), CH * 0.30 + row * 10, 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // 外野芝（縞）
+  for (let i = 6; i >= 0; i--) {
+    ctx.fillStyle = i % 2 === 0 ? "#1a5a1a" : "#226622";
     ctx.beginPath();
-    ctx.arc(FIELD.cx, FIELD.cy, 200 - i * 22, 0, Math.PI * 2);
+    ctx.ellipse(CW * 0.5, CH * 0.75, CW * 0.48 - i * 12, CH * 0.38 - i * 8, 0, Math.PI, 0);
     ctx.fill();
   }
 
   // 内野土
-  ctx.fillStyle = "#7a5230";
+  ctx.fillStyle = "#8B6340";
   ctx.beginPath();
-  ctx.moveTo(FIELD.home.x, FIELD.home.y);
-  ctx.lineTo(FIELD.base1.x, FIELD.base1.y);
-  ctx.lineTo(FIELD.base2.x, FIELD.base2.y);
-  ctx.lineTo(FIELD.base3.x, FIELD.base3.y);
+  ctx.moveTo(POS.home.x, POS.home.y);
+  ctx.lineTo(POS.base1.x, POS.base1.y);
+  ctx.lineTo(POS.base2.x, POS.base2.y);
+  ctx.lineTo(POS.base3.x, POS.base3.y);
+  ctx.closePath();
+  ctx.fill();
+
+  // 内野芝（ダイヤモンド内）
+  ctx.fillStyle = "#1e5a1e";
+  ctx.beginPath();
+  ctx.moveTo(POS.home.x, POS.home.y - 10);
+  ctx.lineTo(POS.base1.x - 10, POS.base1.y);
+  ctx.lineTo(POS.base2.x, POS.base2.y + 10);
+  ctx.lineTo(POS.base3.x + 10, POS.base3.y);
   ctx.closePath();
   ctx.fill();
 
   // ファウルライン
-  ctx.strokeStyle = "#ffffff44";
-  ctx.lineWidth = 1;
+  ctx.strokeStyle = "rgba(255,255,255,0.6)";
+  ctx.lineWidth = 2;
+  ctx.setLineDash([8, 6]);
   ctx.beginPath();
-  ctx.moveTo(FIELD.home.x, FIELD.home.y);
-  ctx.lineTo(CW * 0.05, CH * 0.05);
-  ctx.moveTo(FIELD.home.x, FIELD.home.y);
-  ctx.lineTo(CW * 0.95, CH * 0.05);
+  ctx.moveTo(POS.home.x, POS.home.y);
+  ctx.lineTo(CW * 0.02, CH * 0.05);
+  ctx.moveTo(POS.home.x, POS.home.y);
+  ctx.lineTo(CW * 0.98, CH * 0.05);
   ctx.stroke();
+  ctx.setLineDash([]);
 
   // マウンド
-  ctx.fillStyle = "#8b6340";
+  const moundGrad = ctx.createRadialGradient(POS.mound.x, POS.mound.y, 0, POS.mound.x, POS.mound.y, 18);
+  moundGrad.addColorStop(0, "#a07848");
+  moundGrad.addColorStop(1, "#8B6340");
+  ctx.fillStyle = moundGrad;
   ctx.beginPath();
-  ctx.ellipse(FIELD.mound.x, FIELD.mound.y, 14, 9, 0, 0, Math.PI * 2);
+  ctx.ellipse(POS.mound.x, POS.mound.y + 4, 18, 10, 0, 0, Math.PI * 2);
   ctx.fill();
 
   // ホームプレート
   ctx.fillStyle = "#ffffff";
   ctx.beginPath();
-  ctx.moveTo(FIELD.home.x, FIELD.home.y - 7);
-  ctx.lineTo(FIELD.home.x + 6, FIELD.home.y);
-  ctx.lineTo(FIELD.home.x + 6, FIELD.home.y + 5);
-  ctx.lineTo(FIELD.home.x - 6, FIELD.home.y + 5);
-  ctx.lineTo(FIELD.home.x - 6, FIELD.home.y);
+  ctx.moveTo(POS.home.x, POS.home.y - 9);
+  ctx.lineTo(POS.home.x + 8, POS.home.y - 2);
+  ctx.lineTo(POS.home.x + 8, POS.home.y + 6);
+  ctx.lineTo(POS.home.x - 8, POS.home.y + 6);
+  ctx.lineTo(POS.home.x - 8, POS.home.y - 2);
   ctx.closePath();
   ctx.fill();
 
-  // 塁（白い四角）
-  [[FIELD.base1, "#ffffff"], [FIELD.base2, "#ffffff"], [FIELD.base3, "#ffffff"]].forEach(([pos, col]) => {
+  // 塁
+  const bases = [POS.base1, POS.base2, POS.base3];
+  bases.forEach((pos, i) => {
     ctx.save();
     ctx.translate(pos.x, pos.y);
     ctx.rotate(Math.PI / 4);
-    ctx.fillStyle = col;
-    ctx.fillRect(-7, -7, 14, 14);
+    // 塁が占有されているときは黄色
+    ctx.fillStyle = G.bases[i] ? "#ffdd00" : "#ffffff";
+    ctx.fillRect(-8, -8, 16, 16);
+    ctx.strokeStyle = "#ccaa00";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(-8, -8, 16, 16);
     ctx.restore();
   });
 
-  // 塁上のランナー表示
-  G.bases.forEach((occupied, i) => {
-    if (occupied) {
-      const pos = [FIELD.base1, FIELD.base2, FIELD.base3][i];
-      ctx.fillStyle = "#ffdd00";
-      ctx.beginPath();
-      ctx.arc(pos.x, pos.y - 14, 6, 0, Math.PI * 2);
-      ctx.fill();
-      // ランナーの体
-      ctx.fillStyle = "#ffaa00";
-      ctx.fillRect(pos.x - 4, pos.y - 8, 8, 10);
-    }
-  });
-
   // バッターボックス
-  ctx.strokeStyle = "#ffffff55";
-  ctx.lineWidth = 1;
-  ctx.strokeRect(FIELD.batter.x - 18, FIELD.batter.y - 20, 36, 30);
-  ctx.strokeRect(FIELD.batter.x - 38, FIELD.batter.y - 20, 36, 30);
+  ctx.strokeStyle = "rgba(255,255,255,0.4)";
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(POS.batter.x - 4, POS.batter.y - 30, 28, 40);
+  ctx.strokeRect(POS.batter.x - 36, POS.batter.y - 30, 28, 40);
 }
 
-function drawPitcher(state, frame) {
-  const px = FIELD.mound.x;
-  const py = FIELD.mound.y - 12;
-  ctx.save();
-  ctx.translate(px, py);
+// ============================================================
+// 9. ボール描画
+// ============================================================
+function drawBall() {
+  if (!anim.ball.visible) return;
 
-  // 体
-  ctx.fillStyle = defenseTeam().color;
-  ctx.fillRect(-6, 0, 12, 16);
+  const bx = anim.ball.x;
+  const by = anim.ball.y;
+  const br = anim.ball.r;
 
-  // 頭
-  ctx.fillStyle = "#f5c5a0";
-  ctx.beginPath();
-  ctx.arc(0, -7, 7, 0, Math.PI * 2);
-  ctx.fill();
-
-  // 帽子
-  ctx.fillStyle = defenseTeam().color;
-  ctx.fillRect(-8, -13, 16, 6);
-  ctx.fillRect(-5, -15, 10, 4);
-
-  // 腕（投球モーション）
-  ctx.strokeStyle = "#f5c5a0";
-  ctx.lineWidth = 3;
-  ctx.lineCap = "round";
-
-  if (state === "windup") {
-    // ワインドアップ：腕を上げる
-    const t = (frame % 20) / 20;
-    const angle = -Math.PI * 0.5 - t * Math.PI * 0.5;
-    ctx.beginPath();
-    ctx.moveTo(6, 4);
-    ctx.lineTo(6 + Math.cos(angle) * 14, 4 + Math.sin(angle) * 14);
-    ctx.stroke();
-  } else if (state === "release") {
-    // リリース：腕を前に振る
-    const t = (frame % 10) / 10;
-    const angle = -Math.PI * 1.0 + t * Math.PI * 0.8;
-    ctx.beginPath();
-    ctx.moveTo(6, 4);
-    ctx.lineTo(6 + Math.cos(angle) * 14, 4 + Math.sin(angle) * 14);
-    ctx.stroke();
-  } else {
-    // アイドル
-    ctx.beginPath();
-    ctx.moveTo(-6, 4);
-    ctx.lineTo(-14, 12);
-    ctx.moveTo(6, 4);
-    ctx.lineTo(14, 12);
-    ctx.stroke();
-  }
-
-  // 足
-  ctx.strokeStyle = defenseTeam().color;
-  ctx.lineWidth = 4;
-  ctx.beginPath();
-  ctx.moveTo(-4, 16);
-  ctx.lineTo(-6, 26);
-  ctx.moveTo(4, 16);
-  ctx.lineTo(6, 26);
-  ctx.stroke();
-
-  ctx.restore();
-}
-
-function drawBatter(state, frame) {
-  const bx = FIELD.batter.x;
-  const by = FIELD.batter.y - 10;
-  ctx.save();
-  ctx.translate(bx, by);
-
-  // 体
-  ctx.fillStyle = attackTeam().color;
-  ctx.fillRect(-6, 0, 12, 16);
-
-  // 頭
-  ctx.fillStyle = "#f5c5a0";
-  ctx.beginPath();
-  ctx.arc(0, -7, 7, 0, Math.PI * 2);
-  ctx.fill();
-
-  // 帽子
-  ctx.fillStyle = attackTeam().color;
-  ctx.fillRect(-8, -13, 16, 6);
-  ctx.fillRect(-5, -15, 10, 4);
-
-  // バット
-  ctx.strokeStyle = "#8b5e3c";
-  ctx.lineWidth = 3;
-  ctx.lineCap = "round";
-
-  if (state === "ready") {
-    // 構え
-    ctx.beginPath();
-    ctx.moveTo(-8, -4);
-    ctx.lineTo(-16, -22);
-    ctx.stroke();
-  } else if (state === "swing") {
-    // スイング
-    const t = clamp((frame % 12) / 12, 0, 1);
-    const startA = -Math.PI * 0.8;
-    const endA   =  Math.PI * 0.1;
-    const angle  = startA + (endA - startA) * t;
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(Math.cos(angle) * 22, Math.sin(angle) * 22);
-    ctx.stroke();
-    // スイング軌跡
-    ctx.strokeStyle = "rgba(255,255,255,0.2)";
-    ctx.lineWidth = 6;
-    ctx.beginPath();
-    ctx.arc(0, 0, 22, startA, angle);
-    ctx.stroke();
-  } else if (state === "miss") {
-    // 空振り（バットが前に出る）
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(18, -4);
-    ctx.stroke();
-  } else {
-    // アイドル（バットを持って立つ）
-    ctx.beginPath();
-    ctx.moveTo(-8, -4);
-    ctx.lineTo(-14, -18);
-    ctx.stroke();
-  }
-
-  // 足
-  ctx.strokeStyle = attackTeam().color;
-  ctx.lineWidth = 4;
-  ctx.beginPath();
-  ctx.moveTo(-4, 16);
-  ctx.lineTo(-6, 26);
-  ctx.moveTo(4, 16);
-  ctx.lineTo(6, 26);
-  ctx.stroke();
-
-  ctx.restore();
-}
-
-function drawBall(x, y, trail) {
-  // トレイル
-  trail.forEach((pt, i) => {
-    const alpha = (i / trail.length) * 0.4;
+  // トレイル（残像）
+  anim.ball.trail.forEach((pt, i) => {
+    const alpha = (i / anim.ball.trail.length) * 0.5;
+    const r = br * (i / anim.ball.trail.length) * 0.8;
     ctx.fillStyle = `rgba(255,255,200,${alpha})`;
     ctx.beginPath();
-    ctx.arc(pt.x, pt.y, 3 * (i / trail.length), 0, Math.PI * 2);
+    ctx.arc(pt.x, pt.y, r, 0, Math.PI * 2);
     ctx.fill();
   });
 
   // ボール本体
-  ctx.fillStyle = "#ffffff";
+  const ballGrad = ctx.createRadialGradient(bx - 2, by - 2, 1, bx, by, br);
+  ballGrad.addColorStop(0, "#ffffff");
+  ballGrad.addColorStop(0.7, "#eeeeee");
+  ballGrad.addColorStop(1, "#cccccc");
+  ctx.fillStyle = ballGrad;
   ctx.beginPath();
-  ctx.arc(x, y, 5, 0, Math.PI * 2);
+  ctx.arc(bx, by, br, 0, Math.PI * 2);
   ctx.fill();
 
   // 縫い目
-  ctx.strokeStyle = "#cc2200";
-  ctx.lineWidth = 1;
+  ctx.strokeStyle = "#cc2222";
+  ctx.lineWidth = 1.2;
   ctx.beginPath();
-  ctx.arc(x, y, 3, -0.3, 0.3);
+  ctx.arc(bx - 1, by, br * 0.7, -0.5, 0.5);
   ctx.stroke();
   ctx.beginPath();
-  ctx.arc(x, y, 3, Math.PI - 0.3, Math.PI + 0.3);
+  ctx.arc(bx + 1, by, br * 0.7, Math.PI - 0.5, Math.PI + 0.5);
   ctx.stroke();
 }
 
-function drawFielder(x, y) {
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.fillStyle = defenseTeam().color;
-  ctx.fillRect(-5, 0, 10, 14);
-  ctx.fillStyle = "#f5c5a0";
-  ctx.beginPath();
-  ctx.arc(0, -6, 6, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = defenseTeam().color;
-  ctx.fillRect(-7, -11, 14, 5);
-  ctx.restore();
-}
-
+// ============================================================
+// 10. メインシーン描画
+// ============================================================
 function drawScene() {
   ctx.clearRect(0, 0, CW, CH);
   drawField();
-  drawPitcher(anim.pitcher.state, anim.pitcher.frame);
-  drawBatter(anim.batter.state, anim.batter.frame);
+
+  // ランナー（塁上）
+  const runnerColors = [attackTeam().uniformColor, attackTeam().uniformColor, attackTeam().uniformColor];
+  G.bases.forEach((occ, i) => {
+    if (occ) {
+      const pos = [POS.base1, POS.base2, POS.base3][i];
+      drawRunnerChar(pos.x, pos.y - 20, attackTeam().uniformColor);
+    }
+  });
+
+  // フィールダー
   if (anim.fielder.visible) {
-    drawFielder(anim.fielder.x, anim.fielder.y);
+    drawFielderChar(anim.fielder.x, anim.fielder.y, defenseTeam().uniformColor);
   }
-  if (anim.ball.visible) {
-    drawBall(anim.ball.x, anim.ball.y, anim.ball.trail);
+
+  // ピッチャー
+  drawPitcherChar(
+    POS.mound.x, POS.mound.y - 20,
+    anim.pitcher.state, anim.pitcher.frame,
+    defenseTeam().uniformColor
+  );
+
+  // バッター
+  drawBatterChar(
+    POS.batter.x, POS.batter.y - 30,
+    anim.batter.state, anim.batter.frame,
+    attackTeam().uniformColor
+  );
+
+  // ボール
+  drawBall();
+
+  // フラッシュ
+  if (anim.flash.active && anim.flash.alpha > 0) {
+    ctx.fillStyle = anim.flash.color;
+    ctx.globalAlpha = anim.flash.alpha;
+    ctx.fillRect(0, 0, CW, CH);
+    ctx.globalAlpha = 1;
   }
 }
 
 // ============================================================
-// 8. アニメーション制御
+// 11. アニメーション関数
 // ============================================================
 
-function lerp(a, b, t) { return a + (b - a) * t; }
-
+/* 投球アニメーション */
 function animatePitch(onDone) {
-  // ワインドアップ → リリース → ボールが飛ぶ
   let frame = 0;
-  const total = 30;
+  const windupFrames = 22;
+  const releaseFrames = 14;
+  const total = windupFrames + releaseFrames;
+
+  anim.ball.visible = false;
 
   function step() {
     frame++;
-    if (frame < 15) {
+    if (frame <= windupFrames) {
       anim.pitcher.state = "windup";
       anim.pitcher.frame = frame;
     } else {
       anim.pitcher.state = "release";
-      anim.pitcher.frame = frame - 15;
+      anim.pitcher.frame = frame - windupFrames;
     }
+    drawScene();
+    if (frame < total) {
+      anim.rafId = requestAnimationFrame(step);
+    } else {
+      anim.pitcher.state = "idle";
+      if (onDone) onDone();
+    }
+  }
+  anim.rafId = requestAnimationFrame(step);
+}
 
-    // ボール：マウンドからホームへ
-    const t = clamp((frame - 10) / 20, 0, 1);
-    anim.ball.visible = frame >= 10;
-    anim.ball.x = lerp(FIELD.mound.x, FIELD.home.x, t);
-    anim.ball.y = lerp(FIELD.mound.y, FIELD.home.y, t);
-    // 放物線（わずかに）
-    anim.ball.y -= Math.sin(t * Math.PI) * 8;
+/* スイングアニメーション */
+function animateSwing(doSwing, onDone) {
+  let frame = 0;
+  const total = doSwing ? 16 : 10;
 
-    // トレイル
-    if (anim.ball.visible) {
-      anim.ball.trail.push({ x: anim.ball.x, y: anim.ball.y });
-      if (anim.ball.trail.length > 8) anim.ball.trail.shift();
+  anim.batter.state = doSwing ? "swing" : "ready";
+  anim.batter.frame = 0;
+
+  // ボールが飛んでくる（ピッチャー→ホームプレート）
+  const ballStartX = POS.mound.x;
+  const ballStartY = POS.mound.y - 10;
+  const ballEndX   = POS.batter.x - 5;
+  const ballEndY   = POS.batter.y - 15;
+
+  anim.ball.visible = true;
+  anim.ball.trail = [];
+
+  function step() {
+    frame++;
+    const t = easeOut(clamp(frame / total, 0, 1));
+
+    // ボールが飛んでくる
+    anim.ball.x = lerp(ballStartX, ballEndX, t);
+    anim.ball.y = lerp(ballStartY, ballEndY, t) - Math.sin(t * Math.PI) * 8;
+    anim.ball.trail.push({ x: anim.ball.x, y: anim.ball.y });
+    if (anim.ball.trail.length > 8) anim.ball.trail.shift();
+
+    if (doSwing) {
+      anim.batter.state = "swing";
+      anim.batter.frame = frame;
     }
 
     drawScene();
@@ -480,7 +633,7 @@ function animatePitch(onDone) {
     if (frame < total) {
       anim.rafId = requestAnimationFrame(step);
     } else {
-      anim.pitcher.state = "idle";
+      if (!doSwing) anim.ball.visible = false;
       anim.ball.trail = [];
       if (onDone) onDone();
     }
@@ -488,89 +641,69 @@ function animatePitch(onDone) {
   anim.rafId = requestAnimationFrame(step);
 }
 
-function animateSwing(hit, onDone) {
-  let frame = 0;
-  const total = 18;
-
-  function step() {
-    frame++;
-    anim.batter.state = hit ? "swing" : "miss";
-    anim.batter.frame = frame;
-
-    // ボールをホーム付近で止める
-    anim.ball.x = FIELD.home.x + 5;
-    anim.ball.y = FIELD.home.y - 5;
-
-    drawScene();
-
-    if (frame < total) {
-      anim.rafId = requestAnimationFrame(step);
-    } else {
-      if (onDone) onDone();
-    }
-  }
-  anim.rafId = requestAnimationFrame(step);
-}
-
+/* 打球アニメーション */
 function animateBallFlight(type, onDone) {
-  // type: "grounder" | "fly" | "liner" | "hit" | "homerun"
   let frame = 0;
-  let total;
-  let targetX, targetY, peakY;
-  let fielderTargetX, fielderTargetY;
-  let fielderStartX = FIELD.mound.x + rnd(-60, 60);
-  let fielderStartY = FIELD.mound.y + rnd(-30, 30);
+  let total, targetX, targetY, peakY;
+  let fielderSX = POS.mound.x + rnd(-70, 70);
+  let fielderSY = POS.mound.y + rnd(-30, 20);
+  let fielderTX, fielderTY;
 
-  const startX = FIELD.home.x;
-  const startY = FIELD.home.y;
+  const startX = POS.batter.x - 5;
+  const startY = POS.batter.y - 15;
 
   switch (type) {
     case "grounder":
-      total = 35;
-      targetX = FIELD.cx + rnd(-80, 80);
-      targetY = FIELD.cy + rnd(10, 30);
+      total = 40;
+      targetX = CW * 0.5 + rnd(-90, 90);
+      targetY = POS.mound.y + rnd(10, 30);
       peakY   = startY;
-      fielderTargetX = targetX;
-      fielderTargetY = targetY;
+      fielderTX = targetX;
+      fielderTY = targetY;
       break;
     case "fly":
-      total = 50;
-      targetX = FIELD.cx + rnd(-100, 100);
-      targetY = FIELD.cy - rnd(30, 60);
-      peakY   = CH * 0.15;
-      fielderTargetX = targetX;
-      fielderTargetY = targetY;
+      total = 60;
+      targetX = CW * 0.5 + rnd(-110, 110);
+      targetY = CH * 0.42;
+      peakY   = CH * 0.12;
+      fielderTX = targetX + rnd(-20, 20);
+      fielderTY = targetY + 10;
       break;
     case "liner":
-      total = 28;
-      targetX = FIELD.cx + rnd(-120, 120);
-      targetY = FIELD.cy - rnd(10, 30);
-      peakY   = startY - 20;
-      fielderTargetX = targetX;
-      fielderTargetY = targetY;
+      total = 25;
+      targetX = CW * 0.5 + rnd(-130, 130);
+      targetY = CH * 0.45;
+      peakY   = startY - 15;
+      fielderTX = targetX;
+      fielderTY = targetY;
       break;
     case "hit":
-      total = 55;
-      targetX = FIELD.cx + rnd(-140, 140);
-      targetY = CH * 0.18;
-      peakY   = CH * 0.08;
-      fielderTargetX = targetX + rnd(-20, 20);
-      fielderTargetY = targetY + rnd(10, 30);
+      total = 65;
+      targetX = CW * 0.5 + rnd(-150, 150);
+      targetY = CH * 0.16;
+      peakY   = CH * 0.06;
+      fielderTX = targetX + rnd(-30, 30);
+      fielderTY = targetY + 20;
       break;
     case "homerun":
-      total = 70;
-      targetX = FIELD.cx + rnd(-80, 80);
-      targetY = -30;
-      peakY   = -60;
-      fielderTargetX = targetX;
-      fielderTargetY = CH * 0.1;
+      total = 80;
+      targetX = CW * 0.5 + rnd(-100, 100);
+      targetY = -50;
+      peakY   = -80;
+      fielderTX = targetX;
+      fielderTY = CH * 0.08;
       break;
   }
 
-  // フィールダー初期位置
-  anim.fielder.x = fielderStartX;
-  anim.fielder.y = fielderStartY;
+  anim.fielder.x  = fielderSX;
+  anim.fielder.y  = fielderSY;
+  anim.fielder.tx = fielderTX;
+  anim.fielder.ty = fielderTY;
   anim.fielder.visible = (type !== "homerun");
+
+  anim.ball.visible = true;
+  anim.ball.trail   = [];
+  anim.ball.r       = type === "homerun" ? 9 : 7;
 
   function step() {
     frame++;
@@ -579,22 +712,34 @@ function animateBallFlight(type, onDone) {
     // ボール軌道
     anim.ball.x = lerp(startX, targetX, t);
     const baseY = lerp(startY, targetY, t);
-    anim.ball.y = baseY - Math.sin(t * Math.PI) * Math.abs(startY - peakY);
 
-    // ゴロは地面バウンド演出
     if (type === "grounder") {
-      anim.ball.y = lerp(startY, targetY, t) - Math.abs(Math.sin(t * Math.PI * 3)) * 18;
+      // バウンド
+      anim.ball.y = baseY - Math.abs(Math.sin(t * Math.PI * 3.5)) * 28 * (1 - t);
+    } else if (type === "liner") {
+      // 直線に近い
+      anim.ball.y = baseY - Math.sin(t * Math.PI) * 18;
+    } else {
+      // 放物線
+      anim.ball.y = baseY - Math.sin(t * Math.PI) * Math.abs(startY - peakY) * 1.1;
     }
 
     // トレイル
     anim.ball.trail.push({ x: anim.ball.x, y: anim.ball.y });
-    if (anim.ball.trail.length > 10) anim.ball.trail.shift();
+    if (anim.ball.trail.length > 14) anim.ball.trail.shift();
 
-    // フィールダーがボールを追う
-    if (anim.fielder.visible && frame > total * 0.3) {
-      const ft = clamp((frame - total * 0.3) / (total * 0.7), 0, 1);
-      anim.fielder.x = lerp(fielderStartX, fielderTargetX, ft);
-      anim.fielder.y = lerp(fielderStartY, fielderTargetY, ft);
+    // フィールダーが追う
+    if (anim.fielder.visible && frame > total * 0.25) {
+      const ft = easeOut(clamp((frame - total * 0.25) / (total * 0.75), 0, 1));
+      anim.fielder.x = lerp(fielderSX, fielderTX, ft);
+      anim.fielder.y = lerp(fielderSY, fielderTY, ft);
+    }
+
+    // ホームランは画面外に消えたらフラッシュ
+    if (type === "homerun" && anim.ball.y < 0) {
+      anim.flash.active = true;
+      anim.flash.color  = "rgba(255,220,0,0.6)";
+      anim.flash.alpha  = 0.6;
     }
 
     drawScene();
@@ -602,67 +747,48 @@ function animateBallFlight(type, onDone) {
     if (frame < total) {
       anim.rafId = requestAnimationFrame(step);
     } else {
-      anim.ball.visible = false;
-      anim.ball.trail = [];
+      anim.ball.visible    = false;
+      anim.ball.trail      = [];
+      anim.ball.r          = 7;
       anim.fielder.visible = false;
+      anim.flash.active    = false;
+      anim.flash.alpha     = 0;
       if (onDone) onDone();
     }
   }
   anim.rafId = requestAnimationFrame(step);
 }
 
-function animateRunners(runnerMoves, onDone) {
-  // runnerMoves: [{from, to}] (from/to: 0=1塁,1=2塁,2=3塁,3=本塁,-1=なし)
-  if (!runnerMoves || runnerMoves.length === 0) {
-    if (onDone) onDone();
-    return;
-  }
+/* ランナーアニメーション */
+function animateRunners(moves, onDone) {
+  if (!moves || moves.length === 0) { if (onDone) onDone(); return; }
 
   let frame = 0;
-  const total = 40;
+  const total = 45;
+  const posArr = [POS.base1, POS.base2, POS.base3, POS.home];
 
-  const positions = [FIELD.base1, FIELD.base2, FIELD.base3, FIELD.home];
-
-  // ランナーアニメ用データ
-  const runners = runnerMoves.map((mv, i) => ({
-    from: positions[mv.from],
-    to:   mv.to >= 0 ? positions[mv.to] : positions[3],
-    runner: anim.runners[i],
+  const runners = moves.map(mv => ({
+    from: posArr[mv.from],
+    to:   posArr[mv.to >= 0 ? mv.to : 3],
+    color: attackTeam().uniformColor,
   }));
-
-  runners.forEach((r, i) => {
-    anim.runners[i].visible = true;
-    anim.runners[i].x = r.from.x;
-    anim.runners[i].y = r.from.y;
-  });
 
   function step() {
     frame++;
-    const t = clamp(frame / total, 0, 1);
-
-    runners.forEach((r, i) => {
-      anim.runners[i].x = lerp(r.from.x, r.to.x, t);
-      anim.runners[i].y = lerp(r.from.y, r.to.y, t);
-    });
+    const t = easeOut(clamp(frame / total, 0, 1));
 
     drawScene();
 
-    // ランナーを描画
-    runners.forEach((r, i) => {
-      const rx = anim.runners[i].x;
-      const ry = anim.runners[i].y;
-      ctx.fillStyle = "#ffdd00";
-      ctx.beginPath();
-      ctx.arc(rx, ry - 14, 6, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = "#ffaa00";
-      ctx.fillRect(rx - 4, ry - 8, 8, 10);
+    // ランナーを上書き描画
+    runners.forEach(r => {
+      const rx = lerp(r.from.x, r.to.x, t);
+      const ry = lerp(r.from.y, r.to.y, t) - Math.sin(t * Math.PI) * 12;
+      drawRunnerChar(rx, ry - 20, r.color);
     });
 
     if (frame < total) {
       anim.rafId = requestAnimationFrame(step);
     } else {
-      runners.forEach((r, i) => { anim.runners[i].visible = false; });
       if (onDone) onDone();
     }
   }
@@ -670,36 +796,86 @@ function animateRunners(runnerMoves, onDone) {
 }
 
 // ============================================================
-// 9. 実況テキスト
+// 12. 実況テキスト
 // ============================================================
 const COMMENTARY = {
-  pitch:    ["さあ、投げた！", "ピッチャー振りかぶって…", "第一球！", "投げた！"],
-  ball:     ["ボール！", "外れてボール。", "ボール、低め。", "ボールです。"],
-  strike:   ["ストライク！", "見逃しストライク！", "ストライクゾーンを通過！"],
-  strikeout:["三振！！", "見逃し三振！！", "空振り三振！！", "バッターアウト！！"],
-  grounder: ["ゴロ！　内野へ転がる！", "ゴロゴロ…内野ゴロ！", "転がった！"],
-  fly:      ["高く上がった！　フライ！", "大きなフライ！", "打ち上げた！"],
-  liner:    ["ライナー！　鋭い打球！", "ビュン！ライナー性の当たり！"],
-  hit_single: ["ヒット！！", "カキーン！ヒット！！", "いい当たり！ヒット！！"],
-  hit_double: ["ツーベース！！", "長打！！ツーベースヒット！！"],
-  hit_triple: ["スリーベース！！！", "三塁打！！！"],
-  homerun:  ["入ったーー！！ホームラン！！！", "場外弾！！ホームラン！！！", "スタンドイン！！！"],
-  out_fly:  ["アウト！　フライをキャッチ！", "捕った！アウト！"],
+  pitch:        ["さあ、投げた！", "ピッチャー振りかぶって…", "第一球！", "投げた！"],
+  ball:         ["ボール！", "外れてボール。", "ボール、低め。", "ボールです。"],
+  strike:       ["ストライク！", "見逃しストライク！", "ストライクゾーンを通過！"],
+  strikeout:    ["三振！！", "見逃し三振！！", "空振り三振！！", "バッターアウト！！"],
+  grounder:     ["ゴロ！　内野へ転がる！", "ゴロゴロ…内野ゴロ！", "転がった！"],
+  fly:          ["高く上がった！　フライ！", "大きなフライ！", "打ち上げた！"],
+  liner:        ["ライナー！　鋭い打球！", "ビュン！ライナー性の当たり！"],
+  hit_single:   ["ヒット！！", "カキーン！ヒット！！", "いい当たり！ヒット！！"],
+  hit_double:   ["ツーベース！！", "長打！！ツーベースヒット！！"],
+  hit_triple:   ["スリーベース！！！", "三塁打！！！"],
+  homerun:      ["入ったーー！！ホームラン！！！", "場外弾！！ホームラン！！！", "スタンドイン！！！"],
+  out_fly:      ["アウト！　フライをキャッチ！", "捕った！アウト！"],
   out_grounder: ["ゴロアウト！", "一塁送球、アウト！"],
-  score:    ["得点！！", "ホームイン！！", "スコアが動いた！！"],
-  inning_change: ["チェンジ！", "攻守交代！", "スリーアウト！チェンジ！！"],
-  walk:     ["フォアボール！！", "四球！！バッターは一塁へ。"],
-  swing_miss: ["空振り！", "バットが空を切った！", "ミス！"],
+  score:        ["得点！！", "ホームイン！！", "スコアが動いた！！"],
+  inning_change:["チェンジ！", "攻守交代！", "スリーアウト！チェンジ！！"],
+  walk:         ["フォアボール！！", "四球！！バッターは一塁へ。"],
+  swing_miss:   ["空振り！", "バットが空を切った！", "ミス！"],
 };
 
 function say(key, extra = "") {
   const lines = COMMENTARY[key];
-  const text = lines ? pick(lines) : key;
-  document.getElementById("commentary-text").textContent = text + (extra ? "\n" + extra : "");
+  const text  = lines ? pick(lines) : key;
+  document.getElementById("commentary-text").textContent = text + (extra ? "  " + extra : "");
 }
 
 // ============================================================
-// 10. UI 更新
+// 13. 大テキスト・フラッシュ演出
+// ============================================================
+function showBigText(text, color = "#f5d800", duration = 1400) {
+  const el = document.createElement("div");
+  el.className = "big-text-overlay";
+  el.style.cssText = `
+    position:fixed;top:40%;left:50%;
+    transform:translate(-50%,-50%) scale(0.5);
+    font-family:'Press Start 2P',monospace;
+    font-size:clamp(20px,6vw,38px);
+    color:${color};
+    text-shadow:4px 4px 0 #000,8px 8px 0 rgba(0,0,0,0.4);
+    pointer-events:none;z-index:10000;
+    white-space:nowrap;
+    opacity:0;
+    transition:transform 0.15s ease-out, opacity 0.15s ease-out;
+  `;
+  el.textContent = text;
+  document.body.appendChild(el);
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      el.style.transform = "translate(-50%,-50%) scale(1.15)";
+      el.style.opacity   = "1";
+    });
+  });
+
+  setTimeout(() => {
+    el.style.transform = "translate(-50%,-60%) scale(1.0)";
+    el.style.opacity   = "0";
+    el.style.transition = `transform ${duration * 0.4}ms ease-in, opacity ${duration * 0.4}ms ease-in`;
+  }, duration * 0.6);
+
+  setTimeout(() => el.remove(), duration + 100);
+}
+
+function flashScreen(color = "#ffffff", duration = 250) {
+  const el = document.createElement("div");
+  el.style.cssText = `
+    position:fixed;top:0;left:0;right:0;bottom:0;
+    background:${color};opacity:0.5;
+    pointer-events:none;z-index:9998;
+    transition:opacity ${duration}ms ease-out;
+  `;
+  document.body.appendChild(el);
+  requestAnimationFrame(() => requestAnimationFrame(() => { el.style.opacity = "0"; }));
+  setTimeout(() => el.remove(), duration + 50);
+}
+
+// ============================================================
+// 14. UI 更新
 // ============================================================
 function updateScoreboard() {
   const tbody = document.getElementById("score-body");
@@ -721,71 +897,42 @@ function updateScoreboard() {
 function updateStatus() {
   const halfStr = G.half === 0 ? "表" : "裏";
   document.getElementById("inning-display").textContent = `${G.inning}回${halfStr}`;
-
-  // アウト
-  [0, 1].forEach(i => {
-    document.getElementById(`out${i}`).classList.toggle("filled", i < G.outs);
-  });
-
-  // ボールカウント
-  [0, 1, 2].forEach(i => {
-    document.getElementById(`b${i}`).classList.toggle("on", i < G.balls);
-  });
-
-  // ストライクカウント
-  [0, 1].forEach(i => {
-    document.getElementById(`s${i}`).classList.toggle("on", i < G.strikes);
-  });
+  [0, 1].forEach(i => document.getElementById(`out${i}`).classList.toggle("filled", i < G.outs));
+  [0, 1, 2].forEach(i => document.getElementById(`b${i}`).classList.toggle("on", i < G.balls));
+  [0, 1].forEach(i => document.getElementById(`s${i}`).classList.toggle("on", i < G.strikes));
 }
 
 function updateBatterInfo() {
   const batter  = currentBatter();
   const pitcher = currentPitcher();
-  document.getElementById("batter-name-display").textContent   = batter.name;
-  document.getElementById("pitcher-name-display").textContent  = pitcher.name;
-  document.getElementById("batter-stats-display").textContent  =
+  document.getElementById("batter-name-display").textContent  = batter.name;
+  document.getElementById("pitcher-name-display").textContent = pitcher.name;
+  document.getElementById("batter-stats-display").textContent =
     `POW:${batter.pow} MEET:${batter.meet} SPD:${batter.spd}`;
 }
 
 // ============================================================
-// 11. ゲームロジック
+// 15. ゲームロジック
 // ============================================================
-
 function calcHitResult(batter, pitcher) {
-  // 打撃判定
-  // ストライクゾーン確率
   const strikeChance = 0.35 + pitcher.pitch / 400;
   const roll = Math.random();
 
-  // ボール
-  if (roll < (1 - strikeChance) * 0.5) {
-    return { type: "ball" };
-  }
+  if (roll < (1 - strikeChance) * 0.5) return { type: "ball" };
 
-  // ストライク（見逃し）
   const lookChance = 0.18 + (100 - batter.meet) / 400;
-  if (roll < lookChance) {
-    return { type: "strike_look" };
-  }
+  if (roll < lookChance) return { type: "strike_look" };
 
-  // 空振り
   const missChance = lookChance + 0.12 + (100 - batter.meet) / 500;
-  if (roll < missChance) {
-    return { type: "strike_swing" };
-  }
+  if (roll < missChance) return { type: "strike_swing" };
 
-  // 打球
-  const contact = (batter.meet + batter.pow) / 200;
+  const contact  = (batter.meet + batter.pow) / 200;
   const pitchDef = pitcher.pitch / 100;
-  const hitRoll = Math.random();
+  const hitRoll  = Math.random();
 
-  // ホームラン
-  const hrChance = (batter.pow / 100) * 0.15 * (1 - pitchDef * 0.5);
-  if (hitRoll < hrChance) {
-    return { type: "homerun" };
-  }
+  const hrChance = (batter.pow / 100) * 0.12 * (1 - pitchDef * 0.4);
+  if (hitRoll < hrChance) return { type: "homerun" };
 
-  // ヒット種別
   const hitChance = contact * 0.55 * (1 - pitchDef * 0.3);
   if (hitRoll < hrChance + hitChance) {
     const r = Math.random();
@@ -794,24 +941,15 @@ function calcHitResult(batter, pitcher) {
     return { type: "single" };
   }
 
-  // アウト打球
   const r2 = Math.random();
-  if (r2 < 0.4) return { type: "grounder_out" };
+  if (r2 < 0.4)  return { type: "grounder_out" };
   if (r2 < 0.75) return { type: "fly_out" };
   return { type: "liner_out" };
 }
 
-function advanceBatter() {
-  const t = attackTeam();
-  t.batterIdx++;
-}
-
 function addOut() {
   G.outs++;
-  if (G.outs >= 3) {
-    return true; // チェンジ
-  }
-  return false;
+  return G.outs >= 3;
 }
 
 function addScore(runs) {
@@ -821,95 +959,27 @@ function addScore(runs) {
   updateScoreboard();
 }
 
-function resetCount() {
-  G.balls   = 0;
-  G.strikes = 0;
-}
+function resetCount() { G.balls = 0; G.strikes = 0; }
 
 function resetInning() {
-  G.outs   = 0;
-  G.bases  = [false, false, false];
+  G.outs  = 0;
+  G.bases = [false, false, false];
   resetCount();
 }
 
-// 塁上のランナーを進める
 function advanceRunners(bases) {
-  // bases: 進む塁数
   let scored = 0;
-  const newBases = [false, false, false];
-
-  // 3塁 → 本塁
-  if (G.bases[2]) {
-    if (3 - 2 + bases >= 1) scored++;
-    else newBases[2 + bases - 1] = true;
-  }
-  // 2塁
-  if (G.bases[1]) {
-    const newBase = 1 + bases;
-    if (newBase >= 3) scored++;
-    else newBases[newBase] = true;
-  }
-  // 1塁
-  if (G.bases[0]) {
-    const newBase = 0 + bases;
-    if (newBase >= 3) scored++;
-    else newBases[newBase] = true;
-  }
-
-  G.bases = newBases;
+  const nb = [false, false, false];
+  if (G.bases[2]) { if (2 + bases >= 3) scored++; else nb[2 + bases] = true; }
+  if (G.bases[1]) { if (1 + bases >= 3) scored++; else nb[1 + bases] = true; }
+  if (G.bases[0]) { if (0 + bases >= 3) scored++; else nb[0 + bases] = true; }
+  G.bases = nb;
   return scored;
 }
 
 // ============================================================
-// 11b. 追加演出：フラッシュ・大文字テキスト
+// 16. メインゲームフロー
 // ============================================================
-
-function flashScreen(color = "#ffffff", duration = 300) {
-  const overlay = document.createElement("div");
-  overlay.style.cssText = `
-    position:fixed;top:0;left:0;right:0;bottom:0;
-    background:${color};opacity:0.35;
-    pointer-events:none;z-index:9998;
-    transition:opacity ${duration}ms ease-out;
-  `;
-  document.body.appendChild(overlay);
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => { overlay.style.opacity = "0"; });
-  });
-  setTimeout(() => overlay.remove(), duration + 50);
-}
-
-function showBigText(text, color = "#f5d800", duration = 1200) {
-  const el = document.createElement("div");
-  el.style.cssText = `
-    position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
-    font-family:'Press Start 2P',monospace;
-    font-size:clamp(18px,5vw,32px);
-    color:${color};
-    text-shadow:3px 3px 0 #000,6px 6px 0 rgba(0,0,0,0.5);
-    pointer-events:none;z-index:10000;
-    white-space:nowrap;
-    animation:bigTextAnim ${duration}ms ease-out forwards;
-  `;
-  el.textContent = text;
-  document.body.appendChild(el);
-  const style = document.createElement("style");
-  style.textContent = `
-    @keyframes bigTextAnim {
-      0%   { opacity:0; transform:translate(-50%,-50%) scale(0.5); }
-      20%  { opacity:1; transform:translate(-50%,-50%) scale(1.2); }
-      60%  { opacity:1; transform:translate(-50%,-50%) scale(1.0); }
-      100% { opacity:0; transform:translate(-50%,-60%) scale(1.0); }
-    }
-  `;
-  document.head.appendChild(style);
-  setTimeout(() => { el.remove(); style.remove(); }, duration + 50);
-}
-
-// ============================================================
-// 12. メインゲームフロー
-// ============================================================
-
 let pitchBtnLocked = false;
 
 async function doPitch() {
@@ -918,21 +988,21 @@ async function doPitch() {
   document.getElementById("pitch-btn").disabled = true;
 
   G.phase = "PITCHING";
-
-  // 1. 投球アニメーション
   say("pitch");
-  await new Promise(res => animatePitch(res));
-  await sleep(300);
 
-  // 2. 結果判定
+  // 1. 投球モーション
+  await new Promise(res => animatePitch(res));
+  await sleep(250);
+
+  // 2. 判定
   const batter  = currentBatter();
   const pitcher = currentPitcher();
   const result  = calcHitResult(batter, pitcher);
 
-  // 3. スイング / 見逃しアニメーション
+  // 3. スイング
   const isSwing = !["ball", "strike_look"].includes(result.type);
   await new Promise(res => animateSwing(isSwing, res));
-  await sleep(400);
+  await sleep(350);
 
   // 4. 結果処理
   await handleResult(result);
@@ -957,19 +1027,14 @@ async function handleResult(result) {
       if (G.balls >= 4) {
         say("walk");
         await sleep(600);
-        // フォアボール
-        let scored = 0;
-        if (G.bases[2] && G.bases[1] && G.bases[0]) { scored = 1; G.bases[2] = false; }
+        let sc = 0;
+        if (G.bases[2] && G.bases[1] && G.bases[0]) { sc = 1; G.bases[2] = false; }
         if (G.bases[1] && G.bases[0]) G.bases[2] = true;
         if (G.bases[0]) G.bases[1] = true;
         G.bases[0] = true;
-        if (scored > 0) {
-          addScore(scored);
-          say("score", `${attackTeam().name} +${scored}点！`);
-          await sleep(800);
-        }
+        if (sc > 0) { addScore(sc); say("score", `${attackTeam().name} +${sc}点！`); await sleep(800); }
         resetCount();
-        advanceBatter();
+        attackTeam().batterIdx++;
       } else {
         say("ball");
         await sleep(400);
@@ -980,10 +1045,11 @@ async function handleResult(result) {
       G.strikes++;
       if (G.strikes >= 3) {
         say("strikeout");
-        await sleep(600);
+        showBigText("三振！！", "#cc2200", 1100);
+        await sleep(700);
         anim.batter.state = "idle";
         if (addOut()) await doInningChange();
-        else { resetCount(); advanceBatter(); }
+        else { resetCount(); attackTeam().batterIdx++; }
       } else {
         say("strike");
         await sleep(400);
@@ -998,100 +1064,89 @@ async function handleResult(result) {
       await sleep(500);
       if (G.strikes >= 3) {
         say("strikeout");
-        showBigText("三振！！", "#cc2200", 1000);
-        await sleep(700);
+        showBigText("空振り三振！！", "#cc2200", 1100);
+        await sleep(800);
         anim.batter.state = "idle";
         if (addOut()) await doInningChange();
-        else { resetCount(); advanceBatter(); }
+        else { resetCount(); attackTeam().batterIdx++; }
       }
       break;
 
     case "grounder_out":
       say("grounder");
       await new Promise(res => animateBallFlight("grounder", res));
-      await sleep(300);
+      await sleep(250);
       say("out_grounder");
       await sleep(500);
       anim.batter.state = "idle";
       if (addOut()) await doInningChange();
-      else { resetCount(); advanceBatter(); }
+      else { resetCount(); attackTeam().batterIdx++; }
       break;
 
     case "fly_out":
       say("fly");
       await new Promise(res => animateBallFlight("fly", res));
-      await sleep(300);
+      await sleep(250);
       say("out_fly");
       await sleep(500);
       anim.batter.state = "idle";
       if (addOut()) await doInningChange();
-      else { resetCount(); advanceBatter(); }
+      else { resetCount(); attackTeam().batterIdx++; }
       break;
 
     case "liner_out":
       say("liner");
       await new Promise(res => animateBallFlight("liner", res));
-      await sleep(300);
+      await sleep(250);
       say("out_fly");
       await sleep(500);
       anim.batter.state = "idle";
       if (addOut()) await doInningChange();
-      else { resetCount(); advanceBatter(); }
+      else { resetCount(); attackTeam().batterIdx++; }
       break;
 
     case "single": {
       say("hit_single");
       flashScreen("#ffffff", 200);
+      showBigText("ヒット！！", "#00ff88", 1000);
       attackTeam().hits++;
       await new Promise(res => animateBallFlight("hit", res));
-      await sleep(300);
-      const scored = advanceRunners(1);
+      await sleep(200);
+      const sc1 = advanceRunners(1);
       G.bases[0] = true;
-      if (scored > 0) {
-        say("score", `${attackTeam().name} +${scored}点！`);
-        addScore(scored);
-        await sleep(800);
-      }
+      if (sc1 > 0) { say("score", `${attackTeam().name} +${sc1}点！`); addScore(sc1); await sleep(800); }
       resetCount();
-      advanceBatter();
+      attackTeam().batterIdx++;
       break;
     }
 
     case "double": {
       say("hit_double");
-      showBigText("2B HIT!", "#4caf50", 1000);
       flashScreen("#ffffff", 200);
+      showBigText("2ベース！！", "#00ff88", 1100);
       attackTeam().hits++;
       await new Promise(res => animateBallFlight("hit", res));
-      await sleep(300);
-      const scored = advanceRunners(2);
+      await sleep(200);
+      const sc2 = advanceRunners(2);
       G.bases[1] = true;
-      if (scored > 0) {
-        say("score", `${attackTeam().name} +${scored}点！`);
-        addScore(scored);
-        await sleep(800);
-      }
+      if (sc2 > 0) { say("score", `${attackTeam().name} +${sc2}点！`); addScore(sc2); await sleep(800); }
       resetCount();
-      advanceBatter();
+      attackTeam().batterIdx++;
       break;
     }
 
     case "triple": {
       say("hit_triple");
-      showBigText("3B HIT!!", "#4caf50", 1200);
       flashScreen("#ffffff", 200);
+      showBigText("3ベース！！！", "#00ff88", 1200);
       attackTeam().hits++;
       await new Promise(res => animateBallFlight("hit", res));
-      await sleep(300);
-      const scored = advanceRunners(3);
+      await sleep(200);
+      const sc3 = advanceRunners(3);
       G.bases[2] = true;
-      if (scored > 0) {
-        say("score", `${attackTeam().name} +${scored}点！`);
-        addScore(scored);
-        await sleep(800);
-      }
+      if (sc3 > 0) { say("score", `${attackTeam().name} +${sc3}点！`); addScore(sc3); await sleep(800); }
       resetCount();
-      advanceBatter();
+      attackTeam().batterIdx++;
       break;
     }
 
@@ -1099,10 +1154,9 @@ async function handleResult(result) {
       say("homerun");
       attackTeam().hits++;
       await new Promise(res => animateBallFlight("homerun", res));
-      flashScreen("#ffdd00", 400);
-      showBigText("⚾ HOME RUN !!", "#f5d800", 1500);
-      await sleep(600);
-      // 全ランナー＋バッター生還
+      flashScreen("#ffdd00", 500);
+      showBigText("⚾ HOME RUN !!", "#f5d800", 1800);
+      await sleep(700);
       let runs = 1;
       if (G.bases[0]) runs++;
       if (G.bases[1]) runs++;
@@ -1110,9 +1164,9 @@ async function handleResult(result) {
       G.bases = [false, false, false];
       addScore(runs);
       say("score", `${attackTeam().name} +${runs}点！ ホームラン！！`);
-      await sleep(1200);
+      await sleep(1300);
       resetCount();
-      advanceBatter();
+      attackTeam().batterIdx++;
       break;
     }
   }
@@ -1120,28 +1174,20 @@ async function handleResult(result) {
 
 async function doInningChange() {
   say("inning_change");
+  showBigText("チェンジ！", "#ffffff", 1000);
   await sleep(1000);
   resetInning();
 
   if (G.half === 0) {
-    // 表→裏
     G.half = 1;
   } else {
-    // 裏→次のイニング
     G.half = 0;
     G.inning++;
-
-    if (G.inning > 9) {
-      await endGame();
-      return;
-    }
+    if (G.inning > 9) { await endGame(); return; }
   }
 
-  // 新イニング開始
   const halfStr = G.half === 0 ? "表" : "裏";
-  document.getElementById("commentary-text").textContent =
-    `${G.inning}回${halfStr}　開始！`;
-
+  document.getElementById("commentary-text").textContent = `${G.inning}回${halfStr}　開始！`;
   updateStatus();
   updateScoreboard();
   updateBatterInfo();
@@ -1154,18 +1200,12 @@ async function endGame() {
   document.getElementById("pitch-btn").disabled = true;
 
   const [t0, t1] = G.teams;
-  let winner, msg;
-  if (t0.totalRuns > t1.totalRuns) {
-    winner = t0.name;
-    msg = `${t0.name}  ${t0.totalRuns} - ${t1.totalRuns}  ${t1.name}`;
-  } else if (t1.totalRuns > t0.totalRuns) {
-    winner = t1.name;
-    msg = `${t0.name}  ${t0.totalRuns} - ${t1.totalRuns}  ${t1.name}`;
-  } else {
-    winner = "引き分け";
-    msg = `${t0.name}  ${t0.totalRuns} - ${t1.totalRuns}  ${t1.name}`;
-  }
+  let winner;
+  if (t0.totalRuns > t1.totalRuns)      winner = t0.name;
+  else if (t1.totalRuns > t0.totalRuns) winner = t1.name;
+  else                                   winner = "引き分け";
 
+  const msg = `${t0.name}  ${t0.totalRuns} - ${t1.totalRuns}  ${t1.name}`;
   await sleep(800);
 
   document.getElementById("game-screen").style.display = "none";
@@ -1174,31 +1214,28 @@ async function endGame() {
   document.getElementById("result-title").textContent =
     winner === "引き分け" ? "引き分け！" : `${winner} の勝利！！`;
   document.getElementById("result-detail").innerHTML =
-    `${msg}<br><br>` +
-    `${t0.name}　${t0.hits}安打<br>` +
-    `${t1.name}　${t1.hits}安打`;
+    `${msg}<br><br>${t0.name}　${t0.hits}安打<br>${t1.name}　${t1.hits}安打`;
 }
 
 // ============================================================
-// 13. ゲーム初期化
+// 17. ゲーム初期化
 // ============================================================
-
-const TEAM_COLORS = [
-  "#1a5fa8", "#cc2200", "#1a7a1a", "#8b1a8b",
-  "#c87800", "#1a7a7a", "#7a1a1a", "#3a3a8b",
-];
-const TEAM_NAMES = [
-  "東京スターズ", "大阪タイガース", "横浜マリンズ", "名古屋ドラゴンズ",
-  "福岡ホークス", "札幌ベアーズ", "広島カープス", "仙台イーグルス",
-  "ニューヨーク・ヤンキース", "ロサンゼルス・ドジャース",
-  "ボストン・レッドソックス", "シカゴ・カブス",
+const TEAM_DEFS = [
+  { name:"東京スターズ",           color:"#1a5fa8", uni:"#1a5fa8" },
+  { name:"大阪タイガース",         color:"#cc2200", uni:"#cc2200" },
+  { name:"横浜マリンズ",           color:"#007a9a", uni:"#007a9a" },
+  { name:"名古屋ドラゴンズ",       color:"#1a7a1a", uni:"#1a7a1a" },
+  { name:"福岡ホークス",           color:"#c87800", uni:"#c87800" },
+  { name:"札幌ベアーズ",           color:"#4a1a8b", uni:"#4a1a8b" },
+  { name:"広島カープス",           color:"#cc2244", uni:"#cc2244" },
+  { name:"仙台イーグルス",         color:"#8b1a1a", uni:"#8b1a1a" },
+  { name:"ニューヨーク・ヤンキース",color:"#1a1a3a", uni:"#1a1a3a" },
+  { name:"ロサンゼルス・ドジャース",color:"#005fa8", uni:"#005fa8" },
 ];
 
 function startGame() {
-  // チームをランダム生成
-  const names  = shuffle(TEAM_NAMES).slice(0, 2);
-  const colors = shuffle(TEAM_COLORS).slice(0, 2);
-  G.teams  = [buildTeam(names[0], colors[0]), buildTeam(names[1], colors[1])];
+  const defs   = shuffle(TEAM_DEFS).slice(0, 2);
+  G.teams  = defs.map(d => buildTeam(d.name, d.color, d.uni));
   G.inning = 1;
   G.half   = 0;
   G.outs   = 0;
@@ -1208,7 +1245,6 @@ function startGame() {
   G.phase  = "IDLE";
   G.gameStarted = true;
 
-  // スコアリセット
   G.teams.forEach(t => {
     t.scores    = Array(9).fill(null);
     t.totalRuns = 0;
@@ -1216,14 +1252,12 @@ function startGame() {
     t.batterIdx = 0;
   });
 
-  // アニメ初期化
-  anim.ball.visible = false;
-  anim.ball.trail   = [];
-  anim.pitcher.state = "idle";
-  anim.batter.state  = "ready";
+  anim.ball.visible    = false;
+  anim.ball.trail      = [];
+  anim.pitcher.state   = "idle";
+  anim.batter.state    = "ready";
   anim.fielder.visible = false;
 
-  // 画面切り替え
   document.getElementById("title-screen").style.display  = "none";
   document.getElementById("result-screen").style.display = "none";
   document.getElementById("game-screen").style.display   = "flex";
@@ -1241,22 +1275,18 @@ function startGame() {
 }
 
 // ============================================================
-// 14. イベントリスナー
+// 18. イベントリスナー
 // ============================================================
 document.getElementById("start-btn").addEventListener("click", startGame);
 document.getElementById("retry-btn").addEventListener("click", startGame);
 document.getElementById("pitch-btn").addEventListener("click", doPitch);
-
-// タップでも進行（フィールド）
 document.getElementById("field-canvas").addEventListener("click", () => {
   if (!pitchBtnLocked && G.phase !== "GAMEOVER" && G.gameStarted) doPitch();
 });
 
 // ============================================================
-// 15. 初期描画
+// 19. 初期描画
 // ============================================================
 (function init() {
-  // タイトル画面ではフィールドを描かない
-  // ゲーム開始後に描画
   drawScene();
 })();
