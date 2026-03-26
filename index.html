@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>RETRO BASEBALL</title>
+  <style>
+    /* ===== RESET & BASE ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green:   #1a7a1a;
+      --lime:    #4caf50;
+      --yellow:  #f5d800;
+      --cream:   #f5e6c8;
+      --brown:   #8b5e3c;
+      --red:     #cc2200;
+      --white:   #ffffff;
+      --black:   #111111;
+      --gray:    #555555;
+      --pixel:   "Press Start 2P", monospace;
+    }
+
+    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+    body {
+      background: #0a0a0a;
+      color: var(--cream);
+      font-family: var(--pixel);
+      font-size: 10px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      overflow-x: hidden;
+    }
+
+    /* ===== TITLE ===== */
+    #title-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      gap: 24px;
+      padding: 20px;
+    }
+    #title-screen h1 {
+      font-size: clamp(18px, 5vw, 36px);
+      color: var(--yellow);
+      text-shadow: 4px 4px 0 var(--red), 8px 8px 0 #000;
+      letter-spacing: 4px;
+      text-align: center;
+      animation: titleBlink 1.5s step-end infinite;
+    }
+    @keyframes titleBlink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+    #title-screen .subtitle {
+      color: var(--lime);
+      font-size: clamp(8px, 2vw, 12px);
+      text-align: center;
+      line-height: 2;
+    }
+    .pixel-btn {
+      background: var(--yellow);
+      color: var(--black);
+      border: none;
+      padding: 14px 28px;
+      font-family: var(--pixel);
+      font-size: clamp(9px, 2.5vw, 13px);
+      cursor: pointer;
+      box-shadow: 4px 4px 0 #000;
+      transition: transform 0.1s, box-shadow 0.1s;
+      letter-spacing: 1px;
+    }
+    .pixel-btn:active {
+      transform: translate(2px, 2px);
+      box-shadow: 2px 2px 0 #000;
+    }
+    .pixel-btn.red  { background: var(--red); color: #fff; }
+    .pixel-btn.green { background: var(--lime); color: #000; }
+
+    /* ===== GAME SCREEN ===== */
+    #game-screen {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      max-width: 640px;
+      padding: 8px;
+      gap: 8px;
+    }
+
+    /* ===== SCOREBOARD ===== */
+    #scoreboard {
+      width: 100%;
+      background: #111;
+      border: 3px solid var(--yellow);
+      box-shadow: 0 0 12px var(--yellow);
+      padding: 8px;
+    }
+    .sb-title {
+      text-align: center;
+      color: var(--yellow);
+      font-size: 9px;
+      margin-bottom: 6px;
+      letter-spacing: 3px;
+    }
+    .sb-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: clamp(6px, 1.8vw, 9px);
+    }
+    .sb-table th, .sb-table td {
+      border: 1px solid #333;
+      text-align: center;
+      padding: 4px 2px;
+      min-width: 20px;
+    }
+    .sb-table th { color: var(--yellow); background: #1a1a1a; }
+    .sb-table .team-name { text-align: left; padding-left: 6px; color: var(--lime); max-width: 80px; overflow: hidden; }
+    .sb-table .score-total { color: var(--yellow); font-size: 11px; font-weight: bold; }
+    .sb-table .active-inning { background: #2a2a00; color: var(--yellow); }
+
+    /* ===== STATUS BAR ===== */
+    #status-bar {
+      width: 100%;
+      background: #111;
+      border: 2px solid #333;
+      padding: 6px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    .status-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+    .status-label { color: #888; font-size: 7px; }
+    .status-value { color: var(--cream); font-size: 11px; }
+    .status-value.big { font-size: 14px; color: var(--yellow); }
+
+    /* ===== DIAMOND / CANVAS ===== */
+    #field-wrap {
+      width: 100%;
+      position: relative;
+      background: #0d1f0d;
+      border: 2px solid #2a4a2a;
+    }
+    #field-canvas {
+      width: 100%;
+      height: auto;
+      display: block;
+      image-rendering: pixelated;
+    }
+
+    /* ===== COMMENTARY ===== */
+    #commentary {
+      width: 100%;
+      background: #111;
+      border: 2px solid var(--lime);
+      padding: 10px 14px;
+      min-height: 52px;
+      display: flex;
+      align-items: center;
+    }
+    #commentary-text {
+      color: var(--lime);
+      font-size: clamp(9px, 2.5vw, 12px);
+      line-height: 1.8;
+      white-space: pre-wrap;
+    }
+
+    /* ===== BATTER INFO ===== */
+    #batter-info {
+      width: 100%;
+      background: #111;
+      border: 2px solid #444;
+      padding: 6px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    .batter-label { color: #888; font-size: 7px; }
+    .batter-name  { color: var(--white); font-size: clamp(9px, 2.5vw, 12px); }
+    .batter-stats { color: #aaa; font-size: 8px; }
+
+    /* ===== PITCH BUTTON ===== */
+    #action-area {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      padding: 8px 0;
+    }
+    #pitch-btn {
+      font-size: clamp(11px, 3vw, 15px);
+      padding: 16px 40px;
+      letter-spacing: 2px;
+    }
+
+    /* ===== OUTS DISPLAY ===== */
+    .outs-dots {
+      display: flex;
+      gap: 6px;
+    }
+    .out-dot {
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      border: 2px solid var(--yellow);
+      background: transparent;
+    }
+    .out-dot.filled { background: var(--yellow); }
+
+    /* ===== COUNT DISPLAY ===== */
+    .count-row {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+    }
+    .count-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      border: 2px solid #666;
+    }
+    .count-dot.ball  { border-color: var(--lime); }
+    .count-dot.ball.on  { background: var(--lime); }
+    .count-dot.strike { border-color: var(--red); }
+    .count-dot.strike.on { background: var(--red); }
+
+    /* ===== GAME OVER ===== */
+    #result-screen {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      gap: 20px;
+      padding: 20px;
+      text-align: center;
+    }
+    #result-screen h2 {
+      font-size: clamp(14px, 4vw, 24px);
+      color: var(--yellow);
+      text-shadow: 3px 3px 0 var(--red);
+    }
+    #result-detail {
+      color: var(--cream);
+      font-size: clamp(9px, 2.5vw, 12px);
+      line-height: 2.2;
+    }
+
+    /* ===== SCANLINE OVERLAY ===== */
+    body::after {
+      content: "";
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: repeating-linear-gradient(
+        to bottom,
+        transparent 0px,
+        transparent 2px,
+        rgba(0,0,0,0.08) 2px,
+        rgba(0,0,0,0.08) 4px
+      );
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    /* ===== FLASH EFFECT ===== */
+    .flash {
+      animation: flashAnim 0.3s ease-out;
+    }
+    @keyframes flashAnim {
+      0%   { background: #fff2; }
+      100% { background: transparent; }
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 400px) {
+      .sb-table { font-size: 6px; }
+      .sb-table th, .sb-table td { padding: 3px 1px; min-width: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ========== TITLE SCREEN ========== -->
+<div id="title-screen">
+  <div style="font-size:clamp(10px,2.5vw,14px); color:#888; letter-spacing:2px;">⚾ PIXEL STADIUM ⚾</div>
+  <h1>RETRO<br>BASEBALL</h1>
+  <div class="subtitle">
+    伝説の選手たちが集結！<br>
+    9回制・完全アニメーション<br>
+    野球ゲーム
+  </div>
+  <button class="pixel-btn" id="start-btn">▶ GAME START</button>
+  <div style="color:#555; font-size:8px; margin-top:8px;">TAP TO PITCH</div>
+</div>
+
+<!-- ========== GAME SCREEN ========== -->
+<div id="game-screen">
+
+  <!-- SCOREBOARD -->
+  <div id="scoreboard">
+    <div class="sb-title">★ SCORE BOARD ★</div>
+    <table class="sb-table" id="score-table">
+      <thead>
+        <tr>
+          <th class="team-name">TEAM</th>
+          <th>1</th><th>2</th><th>3</th><th>4</th><th>5</th>
+          <th>6</th><th>7</th><th>8</th><th>9</th>
+          <th class="score-total">R</th>
+        </tr>
+      </thead>
+      <tbody id="score-body">
+      </tbody>
+    </table>
+  </div>
+
+  <!-- STATUS BAR -->
+  <div id="status-bar">
+    <div class="status-item">
+      <span class="status-label">INNING</span>
+      <span class="status-value big" id="inning-display">1回表</span>
+    </div>
+    <div class="status-item">
+      <span class="status-label">OUT</span>
+      <div class="outs-dots" id="outs-display">
+        <div class="out-dot" id="out0"></div>
+        <div class="out-dot" id="out1"></div>
+      </div>
+    </div>
+    <div class="status-item">
+      <span class="status-label">BALL</span>
+      <div class="count-row" id="ball-display">
+        <div class="count-dot ball" id="b0"></div>
+        <div class="count-dot ball" id="b1"></div>
+        <div class="count-dot ball" id="b2"></div>
+      </div>
+    </div>
+    <div class="status-item">
+      <span class="status-label">STRIKE</span>
+      <div class="count-row" id="strike-display">
+        <div class="count-dot strike" id="s0"></div>
+        <div class="count-dot strike" id="s1"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FIELD CANVAS -->
+  <div id="field-wrap">
+    <canvas id="field-canvas" width="480" height="320"></canvas>
+  </div>
+
+  <!-- BATTER INFO -->
+  <div id="batter-info">
+    <div>
+      <div class="batter-label">NOW BATTING</div>
+      <div class="batter-name" id="batter-name-display">---</div>
+    </div>
+    <div>
+      <div class="batter-label">PITCHER</div>
+      <div class="batter-name" id="pitcher-name-display">---</div>
+    </div>
+    <div class="batter-stats" id="batter-stats-display"></div>
+  </div>
+
+  <!-- COMMENTARY -->
+  <div id="commentary">
+    <div id="commentary-text">⚾ プレイボール！</div>
+  </div>
+
+  <!-- ACTION BUTTON -->
+  <div id="action-area">
+    <button class="pixel-btn green" id="pitch-btn">⚾ PITCH !</button>
+  </div>
+
+</div>
+
+<!-- ========== RESULT SCREEN ========== -->
+<div id="result-screen">
+  <div style="color:#888; font-size:10px; letter-spacing:2px;">GAME OVER</div>
+  <h2 id="result-title">試合終了！</h2>
+  <div id="result-detail"></div>
+  <button class="pixel-btn" id="retry-btn">▶ NEW GAME</button>
+</div>
+
+<script src="game.js"></script>
+</body>
+</html>
