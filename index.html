@@ -40,7 +40,7 @@
       align-items: center;
       justify-content: center;
       min-height: 100vh;
-      gap: 24px;
+      gap: 20px;
       padding: 20px;
     }
     #title-screen .logo-sub {
@@ -67,23 +67,57 @@
       text-align: center;
       line-height: 2.2;
     }
+
+    /* ===== モード選択 ===== */
+    .mode-select-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      max-width: 400px;
+    }
+    .mode-select-label {
+      color: var(--yellow);
+      font-size: clamp(9px, 2.2vw, 12px);
+      letter-spacing: 2px;
+      text-align: center;
+    }
+    .mode-btns {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    /* ===== ボタン ===== */
     .pixel-btn {
       background: var(--yellow);
       color: var(--black);
       border: none;
-      padding: 14px 32px;
+      padding: 14px 28px;
       font-family: var(--pixel);
-      font-size: clamp(10px, 2.5vw, 14px);
+      font-size: clamp(9px, 2.2vw, 12px);
       cursor: pointer;
       box-shadow: 4px 4px 0 #000;
       transition: transform 0.08s, box-shadow 0.08s;
       letter-spacing: 1px;
+      line-height: 1.6;
+      text-align: center;
     }
     .pixel-btn:active {
       transform: translate(3px, 3px);
       box-shadow: 1px 1px 0 #000;
     }
-    .pixel-btn.green { background: var(--lime); color: #000; font-size: clamp(12px, 3.5vw, 18px); padding: 18px 48px; }
+    .pixel-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .pixel-btn.green  { background: var(--lime); color: #000; }
+    .pixel-btn.blue   { background: #2266cc; color: #fff; }
+    .pixel-btn.orange { background: #e07800; color: #fff; }
+    .pixel-btn.big    { font-size: clamp(12px, 3.5vw, 18px); padding: 18px 40px; }
+    .pixel-btn.action { font-size: clamp(13px, 4vw, 20px); padding: 20px 50px; }
 
     /* ===== GAME SCREEN ===== */
     #game-screen {
@@ -167,17 +201,6 @@
       display: block;
       image-rendering: pixelated;
     }
-    /* タップ促進テキスト */
-    #field-wrap::after {
-      content: "TAP TO PITCH";
-      position: absolute;
-      bottom: 8px;
-      right: 10px;
-      font-family: var(--pixel);
-      font-size: 7px;
-      color: rgba(255,255,255,0.25);
-      pointer-events: none;
-    }
 
     /* ===== BATTER INFO ===== */
     #batter-info {
@@ -213,12 +236,23 @@
       white-space: pre-wrap;
     }
 
-    /* ===== PITCH BUTTON ===== */
+    /* ===== MODE LABEL ===== */
+    #mode-label {
+      width: 100%;
+      text-align: center;
+      font-size: clamp(8px, 2vw, 10px);
+      color: #aaa;
+      padding: 4px 0;
+      letter-spacing: 1px;
+    }
+
+    /* ===== ACTION AREA ===== */
     #action-area {
       width: 100%;
       display: flex;
       justify-content: center;
       padding: 10px 0 6px;
+      gap: 16px;
     }
 
     /* ===== OUTS ===== */
@@ -226,10 +260,11 @@
     .out-dot {
       width: 14px; height: 14px;
       border-radius: 50%;
-      border: 2px solid var(--yellow);
+      /* [FIX 3] アウト：赤系（野球の慣例） */
+      border: 2px solid var(--red);
       background: transparent;
     }
-    .out-dot.filled { background: var(--yellow); }
+    .out-dot.filled { background: var(--red); }
 
     /* ===== COUNT ===== */
     .count-row { display: flex; gap: 5px; align-items: center; }
@@ -238,10 +273,12 @@
       border-radius: 50%;
       border: 2px solid #555;
     }
+    /* [FIX 3] ボール：緑系 */
     .count-dot.ball   { border-color: var(--lime); }
     .count-dot.ball.on   { background: var(--lime); }
-    .count-dot.strike { border-color: var(--red); }
-    .count-dot.strike.on { background: var(--red); }
+    /* [FIX 3] ストライク：黄色系（野球の慣例） */
+    .count-dot.strike { border-color: var(--yellow); }
+    .count-dot.strike.on { background: var(--yellow); }
 
     /* ===== RESULT ===== */
     #result-screen {
@@ -270,6 +307,12 @@
       border: 2px solid #333;
       padding: 16px 24px;
     }
+    .result-mode-btns {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
 
     /* ===== SCANLINE ===== */
     body::after {
@@ -292,6 +335,7 @@
       .sb-table { font-size: 6px; }
       .sb-table th, .sb-table td { padding: 3px 1px; min-width: 14px; }
       .sb-table .team-name { max-width: 60px; }
+      .mode-btns { flex-direction: column; align-items: center; }
     }
   </style>
 </head>
@@ -303,11 +347,25 @@
   <h1>RETRO<br>BASEBALL</h1>
   <div class="subtitle">
     伝説の選手たちが集結！<br>
-    9回制・完全アニメーション<br>
-    野球シミュレーター
+    9回制・完全アニメーション
   </div>
-  <button class="pixel-btn" id="start-btn">▶ GAME START</button>
-  <div style="color:#444; font-size:8px; margin-top:4px;">TAP FIELD TO PITCH</div>
+
+  <!-- [FIX 3/4] モード選択 -->
+  <div class="mode-select-area">
+    <div class="mode-select-label">▼ モードを選んでください ▼</div>
+    <div class="mode-btns">
+      <button class="pixel-btn blue big" id="start-pitcher-btn">
+        ⚾ ピッチャーで<br>プレイ
+      </button>
+      <button class="pixel-btn orange big" id="start-batter-btn">
+        🏏 バッターで<br>プレイ
+      </button>
+    </div>
+    <div style="color:#555; font-size:8px; margin-top:4px; text-align:center; line-height:1.8;">
+      ピッチャー：ボタンで投球、CPUが打撃<br>
+      バッター：CPUが投球、タイミングでスイング
+    </div>
+  </div>
 </div>
 
 <!-- ========== GAME SCREEN ========== -->
@@ -338,6 +396,7 @@
     <div class="status-item">
       <span class="status-label">OUT</span>
       <div class="outs-dots">
+        <!-- [FIX 3] アウトは赤（CSSで定義） -->
         <div class="out-dot" id="out0"></div>
         <div class="out-dot" id="out1"></div>
       </div>
@@ -353,6 +412,7 @@
     <div class="status-item">
       <span class="status-label">STRIKE</span>
       <div class="count-row">
+        <!-- [FIX 3] ストライクは黄色（CSSで定義） -->
         <div class="count-dot strike" id="s0"></div>
         <div class="count-dot strike" id="s1"></div>
       </div>
@@ -384,9 +444,15 @@
     <div id="commentary-text">⚾ プレイボール！</div>
   </div>
 
-  <!-- ACTION BUTTON -->
+  <!-- MODE LABEL -->
+  <div id="mode-label"></div>
+
+  <!-- ACTION BUTTONS -->
   <div id="action-area">
-    <button class="pixel-btn green" id="pitch-btn">⚾ PITCH !</button>
+    <!-- ピッチャーモード用 -->
+    <button class="pixel-btn blue action" id="pitch-btn">⚾ PITCH !</button>
+    <!-- バッターモード用（初期非表示） -->
+    <button class="pixel-btn orange action" id="swing-btn" style="display:none;">🏏 SWING !</button>
   </div>
 
 </div>
@@ -396,9 +462,19 @@
   <div class="game-over-label">GAME OVER</div>
   <h2 id="result-title">試合終了！</h2>
   <div id="result-detail"></div>
-  <button class="pixel-btn" id="retry-btn">▶ NEW GAME</button>
+  <div class="result-mode-btns">
+    <button class="pixel-btn blue" id="retry-btn">▶ もう一度</button>
+    <button class="pixel-btn" id="back-title-btn">⬅ タイトルへ</button>
+  </div>
 </div>
 
 <script src="game.js"></script>
+<script>
+  // タイトルに戻るボタン
+  document.getElementById("back-title-btn").addEventListener("click", () => {
+    document.getElementById("result-screen").style.display = "none";
+    document.getElementById("title-screen").style.display  = "flex";
+  });
+</script>
 </body>
 </html>

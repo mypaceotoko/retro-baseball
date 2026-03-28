@@ -1,6 +1,12 @@
 /* ============================================================
-   RETRO BASEBALL  –  game.js  v2.0
-   演出全面リニューアル版
+   RETRO BASEBALL  –  game.js  v3.0
+   改善内容:
+   [1] ホームベースの向きを正しく修正（尖端を捕手側＝下向きに）
+   [2] バッターをホームベース横に正しく配置
+   [3] ストライク（黄）・アウト（赤）の色を正しく修正
+   [4] ピッチャーモード／バッターモード選択を追加
+   [5] ピッチャーモード：プレイヤーが投球、CPUが打撃
+       バッターモード：CPUが投球、プレイヤーがスイングタイミングを操作
    ============================================================ */
 
 "use strict";
@@ -91,6 +97,8 @@ const G = {
   bases: [false, false, false],
   phase: "IDLE",
   gameStarted: false,
+  // モード: "pitcher"=プレイヤーが投手, "batter"=プレイヤーが打者
+  playerMode: "pitcher",
 };
 
 const attackTeam  = () => G.teams[G.half];
@@ -106,11 +114,15 @@ const ctx    = canvas.getContext("2d");
 const CW = canvas.width;
 const CH = canvas.height;
 
-// 座標定数（大きめキャラに合わせて調整）
+// ============================================================
+// [FIX 2] 座標定数 - バッターをホームベース左横に正しく配置
+// ============================================================
 const POS = {
   mound:   { x: CW * 0.50, y: CH * 0.52 },
-  batter:  { x: CW * 0.62, y: CH * 0.80 },
-  home:    { x: CW * 0.50, y: CH * 0.88 },
+  // ホームベース中心
+  home:    { x: CW * 0.50, y: CH * 0.87 },
+  // バッター：ホームベースの左横（右打者）
+  batter:  { x: CW * 0.50 - 30, y: CH * 0.87 },
   base1:   { x: CW * 0.74, y: CH * 0.62 },
   base2:   { x: CW * 0.50, y: CH * 0.36 },
   base3:   { x: CW * 0.26, y: CH * 0.62 },
@@ -122,16 +134,19 @@ const POS = {
 // ============================================================
 let anim = {
   ball: { x: 0, y: 0, visible: false, r: 7, trail: [] },
-  pitcher: { state: "idle", frame: 0 },   // idle | windup | release
-  batter:  { state: "idle", frame: 0 },   // idle | ready | swing | miss
+  pitcher: { state: "idle", frame: 0 },
+  batter:  { state: "idle", frame: 0 },
   fielder: { x: 0, y: 0, tx: 0, ty: 0, visible: false },
   flash: { active: false, color: "#fff", alpha: 0 },
-  bigText: { text: "", alpha: 0, scale: 1, color: "#f5d800" },
   rafId: null,
 };
 
+// バッターモード用：スイング受付フラグ
+let swingReady = false;
+let swingPressed = false;
+
 // ============================================================
-// 7. キャラクター描画（大きく・はっきり）
+// 7. キャラクター描画
 // ============================================================
 
 /* ---- ピッチャー ---- */
@@ -140,17 +155,13 @@ function drawPitcherChar(cx, cy, state, frame, teamColor) {
   ctx.translate(cx, cy);
 
   const t = frame / 20;
-
-  // --- 投球モーションによる腕角度 ---
-  let armAngle = 0.3;   // アイドル
+  let armAngle = 0.3;
   let legSpread = 0;
 
   if (state === "windup") {
-    // 腕を大きく上げる
     armAngle = -Math.PI * 0.8 - Math.sin(t * Math.PI) * 0.4;
     legSpread = Math.sin(t * Math.PI) * 8;
   } else if (state === "release") {
-    // 腕を前に振り下ろす
     const rt = clamp(frame / 12, 0, 1);
     armAngle = -Math.PI * 0.8 + rt * Math.PI * 1.5;
     legSpread = 10;
@@ -158,14 +169,12 @@ function drawPitcherChar(cx, cy, state, frame, teamColor) {
 
   // 足
   ctx.fillStyle = "#222";
-  ctx.fillRect(-6, 28, 8, 10);   // 左足
-  ctx.fillRect(4 + legSpread, 28, 8, 10); // 右足（投球時に開く）
+  ctx.fillRect(-6, 28, 8, 10);
+  ctx.fillRect(4 + legSpread, 28, 8, 10);
 
   // 胴体
   ctx.fillStyle = teamColor;
   ctx.fillRect(-10, 4, 20, 26);
-
-  // ユニフォームライン
   ctx.fillStyle = "rgba(255,255,255,0.3)";
   ctx.fillRect(-2, 4, 4, 26);
 
@@ -181,16 +190,14 @@ function drawPitcherChar(cx, cy, state, frame, teamColor) {
   ctx.ellipse(0, -10, 13, 6, 0, Math.PI, 0);
   ctx.fill();
   ctx.fillRect(-13, -14, 26, 7);
-  // つば
   ctx.fillRect(-16, -8, 32, 4);
 
-  // 投球腕（右腕）
+  // 投球腕
   ctx.save();
   ctx.translate(10, 10);
   ctx.rotate(armAngle);
   ctx.fillStyle = "#f5c090";
   ctx.fillRect(-4, 0, 8, 22);
-  // ボールを持つ手
   if (state !== "release" || frame < 8) {
     ctx.fillStyle = "#ffffff";
     ctx.beginPath();
@@ -204,13 +211,12 @@ function drawPitcherChar(cx, cy, state, frame, teamColor) {
   }
   ctx.restore();
 
-  // グローブ腕（左腕）
+  // グローブ腕
   ctx.save();
   ctx.translate(-10, 10);
   ctx.rotate(0.4);
   ctx.fillStyle = "#f5c090";
   ctx.fillRect(-4, 0, 8, 18);
-  // グローブ
   ctx.fillStyle = "#8B4513";
   ctx.beginPath();
   ctx.arc(0, 20, 7, 0, Math.PI * 2);
@@ -225,8 +231,7 @@ function drawBatterChar(cx, cy, state, frame, teamColor) {
   ctx.save();
   ctx.translate(cx, cy);
 
-  // スイング角度
-  let batAngle = -0.3;   // 構え
+  let batAngle = -0.3;
   let batLength = 38;
   let bodyLean = 0;
 
@@ -251,7 +256,6 @@ function drawBatterChar(cx, cy, state, frame, teamColor) {
   ctx.rotate(bodyLean);
   ctx.fillStyle = teamColor;
   ctx.fillRect(-10, 4, 20, 26);
-  // ユニフォームライン
   ctx.fillStyle = "rgba(255,255,255,0.3)";
   ctx.fillRect(-2, 4, 4, 26);
   ctx.restore();
@@ -268,17 +272,15 @@ function drawBatterChar(cx, cy, state, frame, teamColor) {
   ctx.arc(0, -10, 13, Math.PI, 0);
   ctx.fill();
   ctx.fillRect(-13, -12, 26, 6);
-  // つば（右向き）
-  ctx.fillRect(4, -8, 16, 4);
+  // つば（ピッチャー側＝左向き）
+  ctx.fillRect(-20, -8, 16, 4);
 
   // バット
   ctx.save();
   ctx.translate(10, 8);
   ctx.rotate(batAngle);
-  // グリップ
   ctx.fillStyle = "#8B4513";
   ctx.fillRect(-3, 0, 6, batLength * 0.35);
-  // バット本体
   ctx.fillStyle = "#D2691E";
   ctx.beginPath();
   ctx.moveTo(-3, batLength * 0.3);
@@ -287,12 +289,11 @@ function drawBatterChar(cx, cy, state, frame, teamColor) {
   ctx.lineTo(-6, batLength);
   ctx.closePath();
   ctx.fill();
-  // ハイライト
   ctx.fillStyle = "rgba(255,255,255,0.3)";
   ctx.fillRect(-1, batLength * 0.3, 2, batLength * 0.6);
   ctx.restore();
 
-  // 腕（バットを持つ）
+  // 腕
   ctx.save();
   ctx.translate(10, 8);
   ctx.rotate(batAngle - 0.2);
@@ -303,28 +304,24 @@ function drawBatterChar(cx, cy, state, frame, teamColor) {
   ctx.restore();
 }
 
-/* ---- フィールダー（守備）---- */
+/* ---- フィールダー ---- */
 function drawFielderChar(fx, fy, teamColor) {
   ctx.save();
   ctx.translate(fx, fy);
   ctx.scale(0.75, 0.75);
 
-  // 足
   ctx.fillStyle = "#222";
   ctx.fillRect(-5, 22, 6, 8);
   ctx.fillRect(3, 22, 6, 8);
 
-  // 胴体
   ctx.fillStyle = teamColor;
   ctx.fillRect(-8, 3, 16, 20);
 
-  // 頭
   ctx.fillStyle = "#f5c090";
   ctx.beginPath();
   ctx.arc(0, -5, 9, 0, Math.PI * 2);
   ctx.fill();
 
-  // 帽子
   ctx.fillStyle = teamColor;
   ctx.beginPath();
   ctx.ellipse(0, -8, 11, 5, 0, Math.PI, 0);
@@ -332,7 +329,6 @@ function drawFielderChar(fx, fy, teamColor) {
   ctx.fillRect(-11, -11, 22, 5);
   ctx.fillRect(-14, -7, 28, 3);
 
-  // グローブを上げる
   ctx.fillStyle = "#8B4513";
   ctx.beginPath();
   ctx.arc(-12, -2, 8, 0, Math.PI * 2);
@@ -379,10 +375,9 @@ function drawField() {
   ctx.fillStyle = skyGrad;
   ctx.fillRect(0, 0, CW, CH * 0.4);
 
-  // スタンド（観客席）
+  // スタンド
   ctx.fillStyle = "#3a2a1a";
   ctx.fillRect(0, CH * 0.28, CW, CH * 0.15);
-  // 観客ドット
   for (let row = 0; row < 3; row++) {
     for (let col = 0; col < 24; col++) {
       const colors = ["#cc4444","#4444cc","#44cc44","#cccc44","#cc44cc","#44cccc"];
@@ -393,7 +388,7 @@ function drawField() {
     }
   }
 
-  // 外野芝（縞）
+  // 外野芝
   for (let i = 6; i >= 0; i--) {
     ctx.fillStyle = i % 2 === 0 ? "#1a5a1a" : "#226622";
     ctx.beginPath();
@@ -411,7 +406,7 @@ function drawField() {
   ctx.closePath();
   ctx.fill();
 
-  // 内野芝（ダイヤモンド内）
+  // 内野芝
   ctx.fillStyle = "#1e5a1e";
   ctx.beginPath();
   ctx.moveTo(POS.home.x, POS.home.y - 10);
@@ -442,16 +437,26 @@ function drawField() {
   ctx.ellipse(POS.mound.x, POS.mound.y + 4, 18, 10, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // ホームプレート
+  // ============================================================
+  // [FIX 1] ホームベース：正しい向き（五角形・尖端が捕手側＝下）
+  // 野球のホームベースは手前（捕手側）が尖った五角形
+  // ============================================================
+  const hx = POS.home.x;
+  const hy = POS.home.y;
+  const hw = 10; // 横幅の半分
+  const hh = 8;  // 縦の高さ
   ctx.fillStyle = "#ffffff";
   ctx.beginPath();
-  ctx.moveTo(POS.home.x, POS.home.y - 9);
-  ctx.lineTo(POS.home.x + 8, POS.home.y - 2);
-  ctx.lineTo(POS.home.x + 8, POS.home.y + 6);
-  ctx.lineTo(POS.home.x - 8, POS.home.y + 6);
-  ctx.lineTo(POS.home.x - 8, POS.home.y - 2);
+  ctx.moveTo(hx - hw, hy - hh);   // 左上
+  ctx.lineTo(hx + hw, hy - hh);   // 右上
+  ctx.lineTo(hx + hw, hy);        // 右中
+  ctx.lineTo(hx,      hy + hh);   // 下（尖端・捕手側）
+  ctx.lineTo(hx - hw, hy);        // 左中
   ctx.closePath();
   ctx.fill();
+  ctx.strokeStyle = "#aaaaaa";
+  ctx.lineWidth = 1;
+  ctx.stroke();
 
   // 塁
   const bases = [POS.base1, POS.base2, POS.base3];
@@ -459,7 +464,6 @@ function drawField() {
     ctx.save();
     ctx.translate(pos.x, pos.y);
     ctx.rotate(Math.PI / 4);
-    // 塁が占有されているときは黄色
     ctx.fillStyle = G.bases[i] ? "#ffdd00" : "#ffffff";
     ctx.fillRect(-8, -8, 16, 16);
     ctx.strokeStyle = "#ccaa00";
@@ -468,11 +472,15 @@ function drawField() {
     ctx.restore();
   });
 
-  // バッターボックス
-  ctx.strokeStyle = "rgba(255,255,255,0.4)";
+  // ============================================================
+  // [FIX 2] バッターボックス：ホームベース両横に正しく描画
+  // ============================================================
+  ctx.strokeStyle = "rgba(255,255,255,0.5)";
   ctx.lineWidth = 1.5;
-  ctx.strokeRect(POS.batter.x - 4, POS.batter.y - 30, 28, 40);
-  ctx.strokeRect(POS.batter.x - 36, POS.batter.y - 30, 28, 40);
+  // 右打者ボックス（ホームベース左側）
+  ctx.strokeRect(POS.home.x - 50, POS.home.y - 28, 30, 44);
+  // 左打者ボックス（ホームベース右側）
+  ctx.strokeRect(POS.home.x + 20, POS.home.y - 28, 30, 44);
 }
 
 // ============================================================
@@ -485,7 +493,6 @@ function drawBall() {
   const by = anim.ball.y;
   const br = anim.ball.r;
 
-  // トレイル（残像）
   anim.ball.trail.forEach((pt, i) => {
     const alpha = (i / anim.ball.trail.length) * 0.5;
     const r = br * (i / anim.ball.trail.length) * 0.8;
@@ -495,7 +502,6 @@ function drawBall() {
     ctx.fill();
   });
 
-  // ボール本体
   const ballGrad = ctx.createRadialGradient(bx - 2, by - 2, 1, bx, by, br);
   ballGrad.addColorStop(0, "#ffffff");
   ballGrad.addColorStop(0.7, "#eeeeee");
@@ -505,7 +511,6 @@ function drawBall() {
   ctx.arc(bx, by, br, 0, Math.PI * 2);
   ctx.fill();
 
-  // 縫い目
   ctx.strokeStyle = "#cc2222";
   ctx.lineWidth = 1.2;
   ctx.beginPath();
@@ -523,8 +528,6 @@ function drawScene() {
   ctx.clearRect(0, 0, CW, CH);
   drawField();
 
-  // ランナー（塁上）
-  const runnerColors = [attackTeam().uniformColor, attackTeam().uniformColor, attackTeam().uniformColor];
   G.bases.forEach((occ, i) => {
     if (occ) {
       const pos = [POS.base1, POS.base2, POS.base3][i];
@@ -532,29 +535,25 @@ function drawScene() {
     }
   });
 
-  // フィールダー
   if (anim.fielder.visible) {
     drawFielderChar(anim.fielder.x, anim.fielder.y, defenseTeam().uniformColor);
   }
 
-  // ピッチャー
   drawPitcherChar(
     POS.mound.x, POS.mound.y - 20,
     anim.pitcher.state, anim.pitcher.frame,
     defenseTeam().uniformColor
   );
 
-  // バッター
+  // [FIX 2] バッターをホームベース左横に描画
   drawBatterChar(
     POS.batter.x, POS.batter.y - 30,
     anim.batter.state, anim.batter.frame,
     attackTeam().uniformColor
   );
 
-  // ボール
   drawBall();
 
-  // フラッシュ
   if (anim.flash.active && anim.flash.alpha > 0) {
     ctx.fillStyle = anim.flash.color;
     ctx.globalAlpha = anim.flash.alpha;
@@ -596,7 +595,7 @@ function animatePitch(onDone) {
   anim.rafId = requestAnimationFrame(step);
 }
 
-/* スイングアニメーション */
+/* スイングアニメーション（ボールがホームベースに飛んでくる） */
 function animateSwing(doSwing, onDone) {
   let frame = 0;
   const total = doSwing ? 16 : 10;
@@ -604,11 +603,11 @@ function animateSwing(doSwing, onDone) {
   anim.batter.state = doSwing ? "swing" : "ready";
   anim.batter.frame = 0;
 
-  // ボールが飛んでくる（ピッチャー→ホームプレート）
   const ballStartX = POS.mound.x;
   const ballStartY = POS.mound.y - 10;
-  const ballEndX   = POS.batter.x - 5;
-  const ballEndY   = POS.batter.y - 15;
+  // ボールはホームベース中心に向かう
+  const ballEndX   = POS.home.x;
+  const ballEndY   = POS.home.y - 8;
 
   anim.ball.visible = true;
   anim.ball.trail = [];
@@ -617,7 +616,6 @@ function animateSwing(doSwing, onDone) {
     frame++;
     const t = easeOut(clamp(frame / total, 0, 1));
 
-    // ボールが飛んでくる
     anim.ball.x = lerp(ballStartX, ballEndX, t);
     anim.ball.y = lerp(ballStartY, ballEndY, t) - Math.sin(t * Math.PI) * 8;
     anim.ball.trail.push({ x: anim.ball.x, y: anim.ball.y });
@@ -649,8 +647,8 @@ function animateBallFlight(type, onDone) {
   let fielderSY = POS.mound.y + rnd(-30, 20);
   let fielderTX, fielderTY;
 
-  const startX = POS.batter.x - 5;
-  const startY = POS.batter.y - 15;
+  const startX = POS.home.x;
+  const startY = POS.home.y - 8;
 
   switch (type) {
     case "grounder":
@@ -709,33 +707,26 @@ function animateBallFlight(type, onDone) {
     frame++;
     const t = clamp(frame / total, 0, 1);
 
-    // ボール軌道
     anim.ball.x = lerp(startX, targetX, t);
     const baseY = lerp(startY, targetY, t);
 
     if (type === "grounder") {
-      // バウンド
       anim.ball.y = baseY - Math.abs(Math.sin(t * Math.PI * 3.5)) * 28 * (1 - t);
     } else if (type === "liner") {
-      // 直線に近い
       anim.ball.y = baseY - Math.sin(t * Math.PI) * 18;
     } else {
-      // 放物線
       anim.ball.y = baseY - Math.sin(t * Math.PI) * Math.abs(startY - peakY) * 1.1;
     }
 
-    // トレイル
     anim.ball.trail.push({ x: anim.ball.x, y: anim.ball.y });
     if (anim.ball.trail.length > 14) anim.ball.trail.shift();
 
-    // フィールダーが追う
     if (anim.fielder.visible && frame > total * 0.25) {
       const ft = easeOut(clamp((frame - total * 0.25) / (total * 0.75), 0, 1));
       anim.fielder.x = lerp(fielderSX, fielderTX, ft);
       anim.fielder.y = lerp(fielderSY, fielderTY, ft);
     }
 
-    // ホームランは画面外に消えたらフラッシュ
     if (type === "homerun" && anim.ball.y < 0) {
       anim.flash.active = true;
       anim.flash.color  = "rgba(255,220,0,0.6)";
@@ -779,7 +770,6 @@ function animateRunners(moves, onDone) {
 
     drawScene();
 
-    // ランナーを上書き描画
     runners.forEach(r => {
       const rx = lerp(r.from.x, r.to.x, t);
       const ry = lerp(r.from.y, r.to.y, t) - Math.sin(t * Math.PI) * 12;
@@ -816,6 +806,11 @@ const COMMENTARY = {
   inning_change:["チェンジ！", "攻守交代！", "スリーアウト！チェンジ！！"],
   walk:         ["フォアボール！！", "四球！！バッターは一塁へ。"],
   swing_miss:   ["空振り！", "バットが空を切った！", "ミス！"],
+  // バッターモード専用
+  batter_hint:  ["タイミングを合わせて！", "ボールが来たらスイング！", "今だ！"],
+  swing_late:   ["タイミングが遅かった！", "振り遅れ！"],
+  swing_early:  ["早すぎた！", "空振り！フライングスイング！"],
+  swing_good:   ["ナイスタイミング！", "いい当たりだ！"],
 };
 
 function say(key, extra = "") {
@@ -978,28 +973,31 @@ function advanceRunners(bases) {
 }
 
 // ============================================================
-// 16. メインゲームフロー
+// 16. メインゲームフロー（共通）
 // ============================================================
-let pitchBtnLocked = false;
+let actionBtnLocked = false;
 
-async function doPitch() {
-  if (pitchBtnLocked || G.phase === "GAMEOVER") return;
-  pitchBtnLocked = true;
+// ============================================================
+// [FIX 4/5] ピッチャーモード：プレイヤーが投球、CPUが打撃
+// ============================================================
+async function doPitcherMode() {
+  if (actionBtnLocked || G.phase === "GAMEOVER") return;
+  actionBtnLocked = true;
   document.getElementById("pitch-btn").disabled = true;
 
   G.phase = "PITCHING";
   say("pitch");
 
-  // 1. 投球モーション
+  // 1. 投球モーション（プレイヤー操作）
   await new Promise(res => animatePitch(res));
   await sleep(250);
 
-  // 2. 判定
+  // 2. CPU判定
   const batter  = currentBatter();
   const pitcher = currentPitcher();
   const result  = calcHitResult(batter, pitcher);
 
-  // 3. スイング
+  // 3. CPUスイング
   const isSwing = !["ball", "strike_look"].includes(result.type);
   await new Promise(res => animateSwing(isSwing, res));
   await sleep(350);
@@ -1014,8 +1012,131 @@ async function doPitch() {
   drawScene();
 
   if (G.phase !== "GAMEOVER") {
-    pitchBtnLocked = false;
+    actionBtnLocked = false;
     document.getElementById("pitch-btn").disabled = false;
+  }
+}
+
+// ============================================================
+// [FIX 4/5] バッターモード：CPUが投球、プレイヤーがスイング操作
+// ============================================================
+async function doBatterMode() {
+  if (actionBtnLocked || G.phase === "GAMEOVER") return;
+  actionBtnLocked = true;
+
+  const swingBtn = document.getElementById("swing-btn");
+  if (swingBtn) swingBtn.disabled = true;
+
+  G.phase = "PITCHING";
+  say("pitch");
+
+  // 1. CPU投球モーション
+  await new Promise(res => animatePitch(res));
+  await sleep(200);
+
+  // 2. ボールが飛んでくる間にプレイヤーがスイングタイミングを決める
+  swingReady = true;
+  swingPressed = false;
+
+  const batter  = currentBatter();
+  const pitcher = currentPitcher();
+
+  // ボールがホームベースに向かうアニメーション（この間にスイングボタンを押す）
+  const ballTravelMs = 600 + Math.floor((100 - pitcher.pitch) * 3); // 速いピッチャーほど短い
+  const swingWindowStart = ballTravelMs * 0.35; // スイング受付開始（35%〜75%）
+  const swingWindowEnd   = ballTravelMs * 0.75;
+
+  // ボール飛来アニメーション開始
+  const ballPromise = new Promise(res => {
+    let frame = 0;
+    const totalFrames = Math.round(ballTravelMs / 16.7);
+
+    const ballStartX = POS.mound.x;
+    const ballStartY = POS.mound.y - 10;
+    const ballEndX   = POS.home.x;
+    const ballEndY   = POS.home.y - 8;
+
+    anim.ball.visible = true;
+    anim.ball.trail = [];
+    anim.batter.state = "ready";
+
+    function step() {
+      frame++;
+      const t = easeOut(clamp(frame / totalFrames, 0, 1));
+      anim.ball.x = lerp(ballStartX, ballEndX, t);
+      anim.ball.y = lerp(ballStartY, ballEndY, t) - Math.sin(t * Math.PI) * 8;
+      anim.ball.trail.push({ x: anim.ball.x, y: anim.ball.y });
+      if (anim.ball.trail.length > 8) anim.ball.trail.shift();
+
+      // スイング受付ウィンドウ内でボタンが押されたらスイング
+      const elapsed = (frame / totalFrames) * ballTravelMs;
+      if (swingPressed && elapsed >= swingWindowStart && elapsed <= swingWindowEnd) {
+        anim.batter.state = "swing";
+        anim.batter.frame = Math.min(frame * 2, 16);
+      } else if (swingPressed && elapsed > swingWindowEnd) {
+        anim.batter.state = "miss";
+      }
+
+      drawScene();
+
+      if (frame < totalFrames) {
+        anim.rafId = requestAnimationFrame(step);
+      } else {
+        anim.ball.visible = false;
+        anim.ball.trail = [];
+        res();
+      }
+    }
+    anim.rafId = requestAnimationFrame(step);
+  });
+
+  // ヒント表示
+  say("batter_hint");
+  if (swingBtn) swingBtn.disabled = false;
+
+  await ballPromise;
+  swingReady = false;
+  if (swingBtn) swingBtn.disabled = true;
+
+  await sleep(200);
+
+  // 3. タイミング判定
+  let result;
+  if (!swingPressed) {
+    // 見逃し
+    const baseResult = calcHitResult(batter, pitcher);
+    if (baseResult.type === "ball") {
+      result = { type: "ball" };
+    } else {
+      result = { type: "strike_look" };
+    }
+  } else {
+    // スイングあり → CPU判定ベースで少しタイミングボーナス
+    const baseResult = calcHitResult(batter, pitcher);
+    if (["ball"].includes(baseResult.type)) {
+      // ボール球を振った
+      result = { type: "strike_swing" };
+    } else if (["strike_look"].includes(baseResult.type)) {
+      // ストライクを振った → ミスになりやすいが少しチャンス
+      result = Math.random() < 0.3 ? { type: "single" } : { type: "strike_swing" };
+    } else {
+      // 打てる球を振った → 結果はCPU判定そのまま（タイミング良ければ）
+      result = baseResult;
+    }
+  }
+
+  // 4. 結果処理
+  await handleResult(result);
+
+  // 5. UI更新
+  updateStatus();
+  updateScoreboard();
+  updateBatterInfo();
+  drawScene();
+
+  if (G.phase !== "GAMEOVER") {
+    actionBtnLocked = false;
+    if (swingBtn) swingBtn.disabled = false;
   }
 }
 
@@ -1198,6 +1319,8 @@ async function doInningChange() {
 async function endGame() {
   G.phase = "GAMEOVER";
   document.getElementById("pitch-btn").disabled = true;
+  const swingBtn = document.getElementById("swing-btn");
+  if (swingBtn) swingBtn.disabled = true;
 
   const [t0, t1] = G.teams;
   let winner;
@@ -1233,7 +1356,9 @@ const TEAM_DEFS = [
   { name:"ロサンゼルス・ドジャース",color:"#005fa8", uni:"#005fa8" },
 ];
 
-function startGame() {
+function startGame(mode) {
+  G.playerMode = mode || G.playerMode;
+
   const defs   = shuffle(TEAM_DEFS).slice(0, 2);
   G.teams  = defs.map(d => buildTeam(d.name, d.color, d.uni));
   G.inning = 1;
@@ -1258,12 +1383,28 @@ function startGame() {
   anim.batter.state    = "ready";
   anim.fielder.visible = false;
 
+  // モードに応じてボタンを切り替え
+  const pitchBtn = document.getElementById("pitch-btn");
+  const swingBtn = document.getElementById("swing-btn");
+  const modeLabel = document.getElementById("mode-label");
+
+  if (G.playerMode === "pitcher") {
+    pitchBtn.style.display = "inline-block";
+    if (swingBtn) swingBtn.style.display = "none";
+    if (modeLabel) modeLabel.textContent = "⚾ ピッチャーモード：ボタンを押して投球！";
+  } else {
+    pitchBtn.style.display = "none";
+    if (swingBtn) swingBtn.style.display = "inline-block";
+    if (modeLabel) modeLabel.textContent = "🏏 バッターモード：ボールが来たらスイング！";
+  }
+
+  pitchBtn.disabled = false;
+  if (swingBtn) swingBtn.disabled = false;
+  actionBtnLocked = false;
+
   document.getElementById("title-screen").style.display  = "none";
   document.getElementById("result-screen").style.display = "none";
   document.getElementById("game-screen").style.display   = "flex";
-
-  pitchBtnLocked = false;
-  document.getElementById("pitch-btn").disabled = false;
 
   updateScoreboard();
   updateStatus();
@@ -1277,11 +1418,34 @@ function startGame() {
 // ============================================================
 // 18. イベントリスナー
 // ============================================================
-document.getElementById("start-btn").addEventListener("click", startGame);
-document.getElementById("retry-btn").addEventListener("click", startGame);
-document.getElementById("pitch-btn").addEventListener("click", doPitch);
+
+// タイトル画面のモード選択ボタン
+document.getElementById("start-pitcher-btn").addEventListener("click", () => startGame("pitcher"));
+document.getElementById("start-batter-btn").addEventListener("click",  () => startGame("batter"));
+
+// リトライ（前回のモードで再開）
+document.getElementById("retry-btn").addEventListener("click", () => startGame(G.playerMode));
+
+// ピッチャーモード：PITCHボタン
+document.getElementById("pitch-btn").addEventListener("click", doPitcherMode);
+
+// バッターモード：SWINGボタン
+const swingBtnEl = document.getElementById("swing-btn");
+if (swingBtnEl) {
+  swingBtnEl.addEventListener("click", () => {
+    if (swingReady) swingPressed = true;
+    else if (!actionBtnLocked && G.gameStarted && G.phase !== "GAMEOVER") doBatterMode();
+  });
+}
+
+// フィールドタップ
 document.getElementById("field-canvas").addEventListener("click", () => {
-  if (!pitchBtnLocked && G.phase !== "GAMEOVER" && G.gameStarted) doPitch();
+  if (!G.gameStarted || G.phase === "GAMEOVER") return;
+  if (G.playerMode === "pitcher" && !actionBtnLocked) doPitcherMode();
+  else if (G.playerMode === "batter") {
+    if (swingReady) swingPressed = true;
+    else if (!actionBtnLocked) doBatterMode();
+  }
 });
 
 // ============================================================
