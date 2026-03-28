@@ -1,17 +1,18 @@
-/* ============================================================
-   RETRO BASEBALL  –  game.js  v5.0
+/* ===========================================================/*
+   RETRO BASEBALL  –  game.js  v6.0
    改善内容:
+   [v6.0] バッティング体験強化
+     - CPU投球バリエーション（球速5段階×コース5種×重み付きランダム）
+     - 直前3球履歴で同じ球が続かない仕組み
+     - タイミング難易度：球速・コースでスイングウィンドウ動的変化
+     - 投球前ヒント演出（「速い！」「低め！」など0.8秒表示）
+     - コース別ボール軌道（X/Yオフセット）
+     - Web Audio API SE（投球/スイング/ヒット/空振り/ホームラン歓声）
+     - タイミング評価フィードバック（PERFECT / GOOD / MISS）
    [v5.0] 試合進行システム・ハイブリッド観戦+操作
-     - 球団選択画面（10チームから選択）
-     - 役割選択（ピッチャー / バッター）
-     - 試合自動進行エンジン（matchLoop）
-     - プレイヤー介入システム（自分のチームの番のみ操作）
-     - 早送りスキップ機能（次の自分の番まで一気に進む）
-     - 「あなたの番！」バナー演出
    [v4.0] ピッチャー操作強化（コース×球速選択）
    [v3.0] ホームベース向き・バッター位置・色修正
    ============================================================ */
-
 "use strict";
 
 // ============================================================
@@ -142,16 +143,128 @@ const PITCH_CONFIG = {
 };
 
 const COURSE_PARAMS = {
-  inner:  { label:"内角",   xOffset:-38, hitPenalty:0.22, ballBonus:0.08 },
-  center: { label:"真ん中", xOffset:  0, hitPenalty:0.00, ballBonus:0.00 },
-  outer:  { label:"外角",   xOffset:+38, hitPenalty:0.20, ballBonus:0.08 },
+  inner:  { label:"内角",   xOffset:-38, yOffset:  0, hitPenalty:0.22, ballBonus:0.08, windowMult:0.80 },
+  center: { label:"真ん中", xOffset:  0, yOffset:  0, hitPenalty:0.00, ballBonus:0.00, windowMult:1.00 },
+  outer:  { label:"外角",   xOffset:+38, yOffset:  0, hitPenalty:0.20, ballBonus:0.08, windowMult:0.82 },
+  high:   { label:"高め",   xOffset:  0, yOffset:-22, hitPenalty:0.18, ballBonus:0.06, windowMult:0.85 },
+  low:    { label:"低め",   xOffset:  0, yOffset:+18, hitPenalty:0.16, ballBonus:0.10, windowMult:0.88 },
 };
 
 const SPEED_PARAMS = {
-  slow:   { label:"遅い", kmh:110, animFrames:28, hitBonus: 0.12, strikeBonus:-0.06 },
-  normal: { label:"普通", kmh:140, animFrames:18, hitBonus: 0.00, strikeBonus: 0.00 },
-  fast:   { label:"速い", kmh:158, animFrames:10, hitBonus:-0.14, strikeBonus: 0.08 },
+  veryslow: { label:"超遅い", kmh: 90, animFrames:34, hitBonus: 0.18, strikeBonus:-0.10, windowMult:1.30, trailLen: 4 },
+  slow:     { label:"遅い",   kmh:110, animFrames:28, hitBonus: 0.12, strikeBonus:-0.06, windowMult:1.15, trailLen: 6 },
+  normal:   { label:"普通",   kmh:140, animFrames:18, hitBonus: 0.00, strikeBonus: 0.00, windowMult:1.00, trailLen: 8 },
+  fast:     { label:"速い",   kmh:158, animFrames:12, hitBonus:-0.14, strikeBonus: 0.08, windowMult:0.72, trailLen:12 },
+  veryfast: { label:"剛速球", kmh:165, animFrames: 8, hitBonus:-0.22, strikeBonus: 0.14, windowMult:0.50, trailLen:16 },
 };
+
+// ============================================================
+// SE エンジン（Web Audio API）
+// ============================================================
+const SE = (() => {
+  let ctx = null;
+  function getCtx() {
+    if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (ctx.state === "suspended") ctx.resume();
+    return ctx;
+  }
+  function noise(duration, freq, type="square", vol=0.18, decay=0.9) {
+    try {
+      const ac = getCtx();
+      const osc = ac.createOscillator();
+      const gain = ac.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, ac.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(freq * decay, ac.currentTime + duration);
+      gain.gain.setValueAtTime(vol, ac.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + duration);
+      osc.connect(gain); gain.connect(ac.destination);
+      osc.start(); osc.stop(ac.currentTime + duration);
+    } catch(e) {}
+  }
+  function burst(duration, vol=0.15) {
+    try {
+      const ac = getCtx();
+      const buf = ac.createBuffer(1, ac.sampleRate * duration, ac.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1);
+      const src = ac.createBufferSource();
+      const gain = ac.createGain();
+      src.buffer = buf;
+      gain.gain.setValueAtTime(vol, ac.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + duration);
+      src.connect(gain); gain.connect(ac.destination);
+      src.start();
+    } catch(e) {}
+  }
+  return {
+    pitch()    { burst(0.06, 0.10); noise(0.08, 900, "sine", 0.08, 0.5); },
+    swing()    { noise(0.12, 180, "sawtooth", 0.14, 0.4); burst(0.05, 0.06); },
+    hit()      { noise(0.04, 1200, "sine", 0.30, 0.3); noise(0.15, 600, "triangle", 0.20, 0.6); },
+    miss()     { noise(0.10, 220, "sawtooth", 0.08, 0.7); },
+    foul()     { noise(0.06, 800, "sine", 0.15, 0.5); noise(0.08, 400, "triangle", 0.10, 0.6); },
+    homerun()  { noise(0.05, 1400, "sine", 0.35, 0.2); noise(0.20, 700, "triangle", 0.25, 0.5); burst(0.30, 0.18); },
+    crowd()    { burst(0.60, 0.12); },
+    strike()   { noise(0.08, 500, "square", 0.10, 0.8); },
+    ball_se()  { noise(0.06, 300, "sine", 0.08, 0.9); },
+  };
+})();
+
+// ============================================================
+// CPU投球パターン生成（バッターモード用）
+// ============================================================
+const CPU_PITCH_HISTORY = [];
+
+const CPU_PITCH_WEIGHTS = [
+  { speed:"normal",   course:"center",  w:20 },
+  { speed:"fast",     course:"inner",   w:14 },
+  { speed:"fast",     course:"outer",   w:14 },
+  { speed:"normal",   course:"inner",   w:12 },
+  { speed:"normal",   course:"outer",   w:12 },
+  { speed:"slow",     course:"center",  w:10 },
+  { speed:"fast",     course:"center",  w: 8 },
+  { speed:"normal",   course:"low",     w: 8 },
+  { speed:"normal",   course:"high",    w: 6 },
+  { speed:"veryfast", course:"inner",   w: 5 },
+  { speed:"veryfast", course:"outer",   w: 5 },
+  { speed:"slow",     course:"low",     w: 5 },
+  { speed:"veryslow", course:"center",  w: 4 },
+  { speed:"veryfast", course:"center",  w: 3 },
+  { speed:"veryslow", course:"outer",   w: 3 },
+  { speed:"slow",     course:"inner",   w: 3 },
+  { speed:"slow",     course:"high",    w: 2 },
+];
+
+function generateCpuPitch(pitcher) {
+  // 直前3球の履歴で同じ球が続かないよう重みを調整
+  let weights = CPU_PITCH_WEIGHTS.map(p => ({
+    ...p,
+    w: p.w * (pitcher.pitch / 80),  // 投手能力で球種の精度が変わる
+  }));
+  // 直前3球と同じ組み合わせはペナルティ
+  const recent = CPU_PITCH_HISTORY.slice(-3);
+  weights = weights.map(p => {
+    const sameCount = recent.filter(r => r.speed === p.speed && r.course === p.course).length;
+    return { ...p, w: p.w * Math.pow(0.2, sameCount) };
+  });
+  // 重み付きランダム選択
+  const total = weights.reduce((s, p) => s + p.w, 0);
+  let r = Math.random() * total;
+  for (const p of weights) { r -= p.w; if (r <= 0) { CPU_PITCH_HISTORY.push(p); if (CPU_PITCH_HISTORY.length > 10) CPU_PITCH_HISTORY.shift(); return p; } }
+  const fallback = weights[0];
+  CPU_PITCH_HISTORY.push(fallback);
+  return fallback;
+}
+
+// タイミング評価
+function evalTiming(elapsed, windowStart, windowEnd) {
+  const center = (windowStart + windowEnd) / 2;
+  const half   = (windowEnd - windowStart) / 2;
+  const dist   = Math.abs(elapsed - center);
+  if (dist < half * 0.30) return "PERFECT";
+  if (dist < half * 0.70) return "GOOD";
+  return "LATE";
+}
 
 const attackTeam  = () => G.teams[G.half];
 const defenseTeam = () => G.teams[1 - G.half];
@@ -827,6 +940,7 @@ async function handleResult(result) {
   switch (result.type) {
     case "ball":
       G.balls++;
+      SE.ball_se();
       if (G.balls >= 4) {
         say("walk");
         await sleep(600);
@@ -842,6 +956,7 @@ async function handleResult(result) {
 
     case "strike_look":
       G.strikes++;
+      SE.strike();
       if (G.strikes >= 3) {
         say("strikeout"); showBigText("三振！！","#cc2200",1100);
         await sleep(700); anim.batter.state="idle";
@@ -852,6 +967,7 @@ async function handleResult(result) {
 
     case "strike_swing":
       G.strikes++;
+      SE.miss();
       say("swing_miss"); anim.batter.state="miss"; drawScene();
       await sleep(500);
       if (G.strikes >= 3) {
@@ -884,6 +1000,7 @@ async function handleResult(result) {
       break;
 
     case "single": {
+      SE.hit();
       say("hit_single"); flashScreen("#ffffff",200); showBigText("ヒット！！","#00ff88",1000);
       attackTeam().hits++;
       await new Promise(res=>animateBallFlight("hit",res)); await sleep(200);
@@ -893,6 +1010,7 @@ async function handleResult(result) {
       break;
     }
     case "double": {
+      SE.hit();
       say("hit_double"); flashScreen("#ffffff",200); showBigText("2ベース！！","#00ff88",1100);
       attackTeam().hits++;
       await new Promise(res=>animateBallFlight("hit",res)); await sleep(200);
@@ -902,6 +1020,7 @@ async function handleResult(result) {
       break;
     }
     case "triple": {
+      SE.hit();
       say("hit_triple"); flashScreen("#ffffff",200); showBigText("3ベース！！！","#00ff88",1200);
       attackTeam().hits++;
       await new Promise(res=>animateBallFlight("hit",res)); await sleep(200);
@@ -911,6 +1030,7 @@ async function handleResult(result) {
       break;
     }
     case "homerun": {
+      SE.homerun(); SE.crowd();
       say("homerun"); attackTeam().hits++;
       await new Promise(res=>animateBallFlight("homerun",res));
       flashScreen("#ffdd00",500); showBigText("⚾ HOME RUN !!","#f5d800",1800);
@@ -995,42 +1115,105 @@ async function playerBatAtBat() {
   G.phase = "WAITING_PLAYER";
   showPlayerUI(true);
 
-  // CPUが投球モーション（プレイヤーはSWINGボタンを押せる状態）
+  // ── CPU投球パターン生成 ──
+  const cpuPitch = generateCpuPitch(pitcher);
+  const sp = SPEED_PARAMS[cpuPitch.speed];
+  const cp = COURSE_PARAMS[cpuPitch.course];
+
+  // ── 投球前ヒント演出（0.8秒） ──
+  const hintEl = document.createElement("div");
+  hintEl.style.cssText = `
+    position:fixed;top:32%;left:50%;transform:translate(-50%,-50%);
+    font-family:'Press Start 2P',monospace;font-size:clamp(10px,2.5vw,16px);
+    color:#ffdd44;text-shadow:0 0 12px #ff8800,0 0 4px #000;
+    background:rgba(0,0,0,0.6);padding:6px 14px;border-radius:4px;
+    pointer-events:none;z-index:200;opacity:0;
+    transition:opacity 0.15s;`;
+  // ヒントは球速のみ（コースは隠す）
+  const speedHints = { veryslow:"遅い…", slow:"ゆっくり…", normal:"", fast:"速い！", veryfast:"剛速球！！" };
+  const hint = speedHints[cpuPitch.speed];
+  if (hint) {
+    hintEl.textContent = hint;
+    document.body.appendChild(hintEl);
+    requestAnimationFrame(() => { hintEl.style.opacity = "1"; });
+    await sleep(800);
+    hintEl.style.opacity = "0";
+    setTimeout(() => hintEl.remove(), 200);
+  }
+
+  // ── 実況 ──
+  const hintComments = {
+    veryslow: ["緩い球が来るぞ…","チェンジアップ気味！"],
+    slow:     ["タイミングを外してくる！","遅い球に注意！"],
+    normal:   ["タイミングを合わせて！","ボールが来たらスイング！"],
+    fast:     ["速い球が来るぞ！","剛速球に備えろ！"],
+    veryfast: ["剛速球！！反応しろ！！","超高速！！"],
+  };
   say("batter_hint");
+  document.getElementById("commentary-text").textContent = pick(hintComments[cpuPitch.speed]);
+
+  // ── 投球モーション ──
+  SE.pitch();
   await new Promise(res => animatePitch(res));
-  await sleep(200);
+  await sleep(100);
 
   swingReady   = false;
   swingPressed = false;
+  let swingElapsed = 0;
+  let timingGrade  = "";
 
-  const ballTravelMs = 600 + Math.floor((100 - pitcher.pitch) * 3);
-  const swingWindowStart = ballTravelMs * 0.35;
-  const swingWindowEnd   = ballTravelMs * 0.75;
+  // ── 球速・コースに応じたスイングウィンドウ計算 ──
+  const baseTravelMs  = 550 + Math.floor((100 - pitcher.pitch) * 2.5);
+  const speedTravelMs = Math.round(baseTravelMs / (sp.windowMult));
+  const ballTravelMs  = Math.max(speedTravelMs, 200);
+  const baseWindow    = ballTravelMs * 0.28;  // 基本ウィンドウ幅
+  const windowSize    = baseWindow * sp.windowMult * cp.windowMult;
+  const windowCenter  = ballTravelMs * 0.58;
+  const swingWindowStart = windowCenter - windowSize / 2;
+  const swingWindowEnd   = windowCenter + windowSize / 2;
 
+  // ── ボール飛来アニメーション（プレイヤー操作） ──
   const ballPromise = new Promise(res => {
     let frame = 0;
-    const totalFrames = Math.round(ballTravelMs / 16.7);
-    const ballStartX = POS.mound.x, ballStartY = POS.mound.y - 10;
-    const ballEndX = POS.home.x, ballEndY = POS.home.y - 8;
-    anim.ball.visible = true; anim.ball.trail = [];
+    const totalFrames = Math.max(Math.round(ballTravelMs / 16.7), 8);
+    const ballStartX = POS.mound.x;
+    const ballStartY = POS.mound.y - 10;
+    const ballEndX   = POS.home.x  + cp.xOffset * 0.6;
+    const ballEndY   = POS.home.y  - 8 + (cp.yOffset || 0) * 0.7;
+    anim.ball.visible = true;
+    anim.ball.trail   = [];
+    anim.ball.r       = cpuPitch.speed === "veryfast" ? 9 : 7;
     anim.batter.state = "ready";
+    const maxTrail    = sp.trailLen || 8;
 
     function step() {
       frame++;
       const t = easeOut(clamp(frame / totalFrames, 0, 1));
       anim.ball.x = lerp(ballStartX, ballEndX, t);
-      anim.ball.y = lerp(ballStartY, ballEndY, t) - Math.sin(t * Math.PI) * 8;
-      anim.ball.trail.push({x:anim.ball.x, y:anim.ball.y});
-      if (anim.ball.trail.length > 8) anim.ball.trail.shift();
-      const elapsed = (frame / totalFrames) * ballTravelMs;
-      if (swingPressed && elapsed >= swingWindowStart && elapsed <= swingWindowEnd) {
-        anim.batter.state = "swing"; anim.batter.frame = Math.min(frame * 2, 16);
-      } else if (swingPressed && elapsed > swingWindowEnd) {
-        anim.batter.state = "miss";
+      const baseY = lerp(ballStartY, ballEndY, t);
+      // コース別Y軌道変化
+      if (cpuPitch.course === "high") {
+        anim.ball.y = baseY - Math.sin(t * Math.PI) * 20;
+      } else if (cpuPitch.course === "low") {
+        anim.ball.y = baseY + Math.sin(t * Math.PI) * 10;
+      } else {
+        anim.ball.y = baseY - Math.sin(t * Math.PI) * 8;
+      }
+      anim.ball.trail.push({ x: anim.ball.x, y: anim.ball.y });
+      if (anim.ball.trail.length > maxTrail) anim.ball.trail.shift();
+
+      swingElapsed = (frame / totalFrames) * ballTravelMs;
+      if (swingPressed) {
+        if (swingElapsed >= swingWindowStart && swingElapsed <= swingWindowEnd) {
+          anim.batter.state = "swing";
+          anim.batter.frame = Math.min(frame * 2, 16);
+        } else {
+          anim.batter.state = "miss";
+        }
       }
       drawScene();
       if (frame < totalFrames) anim.rafId = requestAnimationFrame(step);
-      else { anim.ball.visible = false; anim.ball.trail = []; res(); }
+      else { anim.ball.visible = false; anim.ball.trail = []; anim.ball.r = 7; res(); }
     }
     anim.rafId = requestAnimationFrame(step);
   });
@@ -1044,17 +1227,62 @@ async function playerBatAtBat() {
   if (swingBtn) swingBtn.disabled = true;
   showPlayerUI(false);
 
-  await sleep(200);
+  // ── タイミング評価 ──
+  if (swingPressed) {
+    timingGrade = evalTiming(swingElapsed, swingWindowStart, swingWindowEnd);
+  }
 
+  await sleep(150);
+
+  // ── 結果判定（タイミングとCPU投球を考慮） ──
   let result;
   if (!swingPressed) {
-    const baseResult = calcHitResult(batter, pitcher);
+    // 見逃し
+    const baseResult = calcHitResult(batter, pitcher, cpuPitch.course, cpuPitch.speed);
     result = baseResult.type === "ball" ? { type:"ball" } : { type:"strike_look" };
+    SE.ball_se();
   } else {
-    const baseResult = calcHitResult(batter, pitcher);
-    if (baseResult.type === "ball") result = { type:"strike_swing" };
-    else if (baseResult.type === "strike_look") result = Math.random() < 0.3 ? { type:"single" } : { type:"strike_swing" };
-    else result = baseResult;
+    SE.swing();
+    const inWindow = swingElapsed >= swingWindowStart && swingElapsed <= swingWindowEnd;
+    if (!inWindow) {
+      // 完全にタイミング外れ → 空振り確定
+      result = { type:"strike_swing" };
+      SE.miss();
+    } else {
+      // タイミング内：グレードに応じてヒット確率を補正
+      const timingBonus = timingGrade === "PERFECT" ? 0.30 :
+                          timingGrade === "GOOD"    ? 0.12 : -0.08;
+      const baseResult = calcHitResult(batter, pitcher, cpuPitch.course, cpuPitch.speed);
+      if (baseResult.type === "ball") {
+        // ボール球をスイング → 空振りか弱い当たり
+        result = Math.random() < 0.25 + timingBonus * 0.3 ? { type:"grounder_out" } : { type:"strike_swing" };
+      } else if (baseResult.type === "strike_look") {
+        // ストライクをスイング → タイミング次第でヒット
+        const hitRoll = Math.random();
+        if (hitRoll < 0.15 + timingBonus * 0.5) result = { type:"single" };
+        else result = { type:"strike_swing" };
+      } else {
+        // 通常の打球：タイミングボーナスを加味
+        if (timingGrade === "PERFECT" && baseResult.type === "grounder_out" && Math.random() < 0.40) {
+          result = { type:"single" };
+        } else if (timingGrade === "PERFECT" && baseResult.type === "homerun") {
+          result = baseResult; // ホームランはそのまま
+        } else if (timingGrade === "LATE" && ["single","double","triple"].includes(baseResult.type)) {
+          result = Math.random() < 0.5 ? { type:"grounder_out" } : baseResult;
+        } else {
+          result = baseResult;
+        }
+      }
+      // SE
+      if (["single","double","triple"].includes(result.type)) SE.hit();
+      else if (result.type === "homerun") { SE.homerun(); SE.crowd(); }
+      else if (result.type === "strike_swing") SE.miss();
+    }
+    // タイミング評価フィードバック表示
+    if (inWindow) {
+      const gradeColors = { PERFECT:"#00ffcc", GOOD:"#ffdd44", LATE:"#ff8844" };
+      showBigText(timingGrade, gradeColors[timingGrade] || "#ffffff", 700);
+    }
   }
 
   await handleResult(result);
