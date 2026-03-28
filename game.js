@@ -1,12 +1,13 @@
 /* ============================================================
-   RETRO BASEBALL  –  game.js  v3.0
+   RETRO BASEBALL  –  game.js  v4.0
    改善内容:
-   [1] ホームベースの向きを正しく修正（尖端を捕手側＝下向きに）
-   [2] バッターをホームベース横に正しく配置
-   [3] ストライク（黄）・アウト（赤）の色を正しく修正
-   [4] ピッチャーモード／バッターモード選択を追加
-   [5] ピッチャーモード：プレイヤーが投球、CPUが打撃
-       バッターモード：CPUが投球、プレイヤーがスイングタイミングを操作
+   [v4.0] ピッチャー操作強化
+     - コース選択（内角 / 真ん中 / 外角）
+     - 球速選択（遅い / 普通 / 速い）
+     - 選択に応じてボール軌道・アニメーション速度・打率が変化
+     - ストライクゾーン可視化インジケーター
+     - 球速メーター表示
+   [v3.0] ホームベース向き・バッター位置・色修正・モード選択
    ============================================================ */
 
 "use strict";
@@ -97,8 +98,29 @@ const G = {
   bases: [false, false, false],
   phase: "IDLE",
   gameStarted: false,
-  // モード: "pitcher"=プレイヤーが投手, "batter"=プレイヤーが打者
   playerMode: "pitcher",
+};
+
+// ============================================================
+// [v4.0] 投球設定状態
+// ============================================================
+const PITCH_CONFIG = {
+  course: "center",   // "inner" | "center" | "outer"
+  speed:  "normal",   // "slow" | "normal" | "fast"
+};
+
+// コース設定値
+const COURSE_PARAMS = {
+  inner:  { label: "内角",   xOffset: -38, hitPenalty: 0.22, ballBonus: 0.08 },
+  center: { label: "真ん中", xOffset:   0, hitPenalty: 0.00, ballBonus: 0.00 },
+  outer:  { label: "外角",   xOffset: +38, hitPenalty: 0.20, ballBonus: 0.08 },
+};
+
+// 球速設定値
+const SPEED_PARAMS = {
+  slow:   { label: "遅い", kmh: 110, animFrames: 28, hitBonus: 0.12, strikeBonus: -0.06 },
+  normal: { label: "普通", kmh: 140, animFrames: 18, hitBonus: 0.00, strikeBonus:  0.00 },
+  fast:   { label: "速い", kmh: 158, animFrames: 10, hitBonus: -0.14, strikeBonus: 0.08 },
 };
 
 const attackTeam  = () => G.teams[G.half];
@@ -114,14 +136,9 @@ const ctx    = canvas.getContext("2d");
 const CW = canvas.width;
 const CH = canvas.height;
 
-// ============================================================
-// [FIX 2] 座標定数 - バッターをホームベース左横に正しく配置
-// ============================================================
 const POS = {
   mound:   { x: CW * 0.50, y: CH * 0.52 },
-  // ホームベース中心
   home:    { x: CW * 0.50, y: CH * 0.87 },
-  // バッター：ホームベースの左横（右打者）
   batter:  { x: CW * 0.50 - 30, y: CH * 0.87 },
   base1:   { x: CW * 0.74, y: CH * 0.62 },
   base2:   { x: CW * 0.50, y: CH * 0.36 },
@@ -141,8 +158,7 @@ let anim = {
   rafId: null,
 };
 
-// バッターモード用：スイング受付フラグ
-let swingReady = false;
+let swingReady   = false;
 let swingPressed = false;
 
 // ============================================================
@@ -272,7 +288,6 @@ function drawBatterChar(cx, cy, state, frame, teamColor) {
   ctx.arc(0, -10, 13, Math.PI, 0);
   ctx.fill();
   ctx.fillRect(-13, -12, 26, 6);
-  // つば（ピッチャー側＝左向き）
   ctx.fillRect(-20, -8, 16, 4);
 
   // バット
@@ -437,21 +452,18 @@ function drawField() {
   ctx.ellipse(POS.mound.x, POS.mound.y + 4, 18, 10, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // ============================================================
-  // [FIX 1] ホームベース：正しい向き（五角形・尖端が捕手側＝下）
-  // 野球のホームベースは手前（捕手側）が尖った五角形
-  // ============================================================
+  // ホームベース（五角形・尖端が捕手側＝下）
   const hx = POS.home.x;
   const hy = POS.home.y;
-  const hw = 10; // 横幅の半分
-  const hh = 8;  // 縦の高さ
+  const hw = 10;
+  const hh = 8;
   ctx.fillStyle = "#ffffff";
   ctx.beginPath();
-  ctx.moveTo(hx - hw, hy - hh);   // 左上
-  ctx.lineTo(hx + hw, hy - hh);   // 右上
-  ctx.lineTo(hx + hw, hy);        // 右中
-  ctx.lineTo(hx,      hy + hh);   // 下（尖端・捕手側）
-  ctx.lineTo(hx - hw, hy);        // 左中
+  ctx.moveTo(hx - hw, hy - hh);
+  ctx.lineTo(hx + hw, hy - hh);
+  ctx.lineTo(hx + hw, hy);
+  ctx.lineTo(hx,      hy + hh);
+  ctx.lineTo(hx - hw, hy);
   ctx.closePath();
   ctx.fill();
   ctx.strokeStyle = "#aaaaaa";
@@ -472,15 +484,54 @@ function drawField() {
     ctx.restore();
   });
 
-  // ============================================================
-  // [FIX 2] バッターボックス：ホームベース両横に正しく描画
-  // ============================================================
+  // バッターボックス
   ctx.strokeStyle = "rgba(255,255,255,0.5)";
   ctx.lineWidth = 1.5;
-  // 右打者ボックス（ホームベース左側）
   ctx.strokeRect(POS.home.x - 50, POS.home.y - 28, 30, 44);
-  // 左打者ボックス（ホームベース右側）
   ctx.strokeRect(POS.home.x + 20, POS.home.y - 28, 30, 44);
+
+  // [v4.0] ストライクゾーン可視化（投球コースに応じた照準）
+  if (G.gameStarted && G.playerMode === "pitcher" && G.phase === "IDLE") {
+    drawStrikeZoneAim();
+  }
+}
+
+// [v4.0] ストライクゾーン照準描画
+function drawStrikeZoneAim() {
+  const cp = COURSE_PARAMS[PITCH_CONFIG.course];
+  const sp = SPEED_PARAMS[PITCH_CONFIG.speed];
+
+  const zx = POS.home.x + cp.xOffset;
+  const zy = POS.home.y - 18;
+  const zw = 18;
+  const zh = 22;
+
+  // ゾーン枠
+  ctx.strokeStyle = "rgba(68,136,255,0.7)";
+  ctx.lineWidth = 2;
+  ctx.setLineDash([3, 3]);
+  ctx.strokeRect(zx - zw / 2, zy - zh / 2, zw, zh);
+  ctx.setLineDash([]);
+
+  // 照準クロスヘア
+  ctx.strokeStyle = "rgba(68,136,255,0.9)";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(zx - 10, zy);
+  ctx.lineTo(zx + 10, zy);
+  ctx.moveTo(zx, zy - 10);
+  ctx.lineTo(zx, zy + 10);
+  ctx.stroke();
+
+  // 球速に応じた色のドット
+  const speedColors = { slow: "#44cc88", normal: "#ffcc00", fast: "#ff4444" };
+  ctx.fillStyle = speedColors[PITCH_CONFIG.speed];
+  ctx.beginPath();
+  ctx.arc(zx, zy, 4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "#fff";
+  ctx.lineWidth = 1;
+  ctx.stroke();
 }
 
 // ============================================================
@@ -545,7 +596,6 @@ function drawScene() {
     defenseTeam().uniformColor
   );
 
-  // [FIX 2] バッターをホームベース左横に描画
   drawBatterChar(
     POS.batter.x, POS.batter.y - 30,
     anim.batter.state, anim.batter.frame,
@@ -595,18 +645,19 @@ function animatePitch(onDone) {
   anim.rafId = requestAnimationFrame(step);
 }
 
-/* スイングアニメーション（ボールがホームベースに飛んでくる） */
-function animateSwing(doSwing, onDone) {
+/* [v4.0] 投球飛来アニメーション（コース・球速対応） */
+function animateSwing(doSwing, onDone, courseOffset) {
   let frame = 0;
-  const total = doSwing ? 16 : 10;
+  const sp = SPEED_PARAMS[PITCH_CONFIG.speed];
+  const total = doSwing ? Math.max(sp.animFrames, 10) : Math.max(sp.animFrames - 4, 8);
 
   anim.batter.state = doSwing ? "swing" : "ready";
   anim.batter.frame = 0;
 
   const ballStartX = POS.mound.x;
   const ballStartY = POS.mound.y - 10;
-  // ボールはホームベース中心に向かう
-  const ballEndX   = POS.home.x;
+  // [v4.0] コースに応じてX座標をオフセット
+  const ballEndX   = POS.home.x + (courseOffset || 0);
   const ballEndY   = POS.home.y - 8;
 
   anim.ball.visible = true;
@@ -790,6 +841,11 @@ function animateRunners(moves, onDone) {
 // ============================================================
 const COMMENTARY = {
   pitch:        ["さあ、投げた！", "ピッチャー振りかぶって…", "第一球！", "投げた！"],
+  // [v4.0] コース・球速別実況
+  pitch_inner:  ["内角攻め！", "インコース！", "内角へ！"],
+  pitch_outer:  ["外角へ！", "アウトコース！", "外に逃げる！"],
+  pitch_fast:   ["速い！", "剛速球！！", "火の玉ストレート！！"],
+  pitch_slow:   ["緩い球！", "チェンジアップ気味！", "タイミングを外した！"],
   ball:         ["ボール！", "外れてボール。", "ボール、低め。", "ボールです。"],
   strike:       ["ストライク！", "見逃しストライク！", "ストライクゾーンを通過！"],
   strikeout:    ["三振！！", "見逃し三振！！", "空振り三振！！", "バッターアウト！！"],
@@ -806,7 +862,6 @@ const COMMENTARY = {
   inning_change:["チェンジ！", "攻守交代！", "スリーアウト！チェンジ！！"],
   walk:         ["フォアボール！！", "四球！！バッターは一塁へ。"],
   swing_miss:   ["空振り！", "バットが空を切った！", "ミス！"],
-  // バッターモード専用
   batter_hint:  ["タイミングを合わせて！", "ボールが来たらスイング！", "今だ！"],
   swing_late:   ["タイミングが遅かった！", "振り遅れ！"],
   swing_early:  ["早すぎた！", "空振り！フライングスイング！"],
@@ -817,6 +872,26 @@ function say(key, extra = "") {
   const lines = COMMENTARY[key];
   const text  = lines ? pick(lines) : key;
   document.getElementById("commentary-text").textContent = text + (extra ? "  " + extra : "");
+}
+
+// [v4.0] コース・球速に応じた実況
+function sayPitchComment() {
+  const cp = COURSE_PARAMS[PITCH_CONFIG.course];
+  const sp = SPEED_PARAMS[PITCH_CONFIG.speed];
+  let text = pick(COMMENTARY.pitch);
+
+  if (PITCH_CONFIG.speed === "fast") {
+    text = pick(COMMENTARY.pitch_fast);
+  } else if (PITCH_CONFIG.speed === "slow") {
+    text = pick(COMMENTARY.pitch_slow);
+  } else if (PITCH_CONFIG.course === "inner") {
+    text = pick(COMMENTARY.pitch_inner);
+  } else if (PITCH_CONFIG.course === "outer") {
+    text = pick(COMMENTARY.pitch_outer);
+  }
+
+  const speedLabel = `${sp.kmh}km/h`;
+  document.getElementById("commentary-text").textContent = `${text}  ${speedLabel}`;
 }
 
 // ============================================================
@@ -907,28 +982,94 @@ function updateBatterInfo() {
 }
 
 // ============================================================
+// [v4.0] ピッチャーコントロールパネル UI更新
+// ============================================================
+function updatePitcherPanel() {
+  // コースボタン
+  document.querySelectorAll("#course-btns .sel-btn").forEach(btn => {
+    btn.classList.toggle("selected-course", btn.dataset.course === PITCH_CONFIG.course);
+  });
+
+  // ゾーンインジケーター
+  ["inner", "center", "outer"].forEach(c => {
+    const el = document.getElementById(`zone-${c}`);
+    if (el) el.classList.toggle("zone-active", c === PITCH_CONFIG.course);
+  });
+
+  // 球速ボタン
+  document.querySelectorAll("#speed-btns .sel-btn").forEach(btn => {
+    btn.classList.toggle("selected-speed", btn.dataset.speed === PITCH_CONFIG.speed);
+  });
+
+  // 球速メーター
+  const sp = SPEED_PARAMS[PITCH_CONFIG.speed];
+  const bar1 = document.getElementById("speed-bar1");
+  const bar2 = document.getElementById("speed-bar2");
+  const bar3 = document.getElementById("speed-bar3");
+  const speedVal = document.getElementById("speed-value");
+
+  // 全バーをリセット
+  [bar1, bar2, bar3].forEach(b => {
+    b.classList.remove("active-slow", "active-normal", "active-fast");
+  });
+
+  if (PITCH_CONFIG.speed === "slow") {
+    bar1.classList.add("active-slow");
+    speedVal.textContent = `${sp.kmh}km/h`;
+    speedVal.style.color = "#44cc88";
+  } else if (PITCH_CONFIG.speed === "normal") {
+    bar1.classList.add("active-normal");
+    bar2.classList.add("active-normal");
+    speedVal.textContent = `${sp.kmh}km/h`;
+    speedVal.style.color = "#ffcc00";
+  } else {
+    bar1.classList.add("active-fast");
+    bar2.classList.add("active-fast");
+    bar3.classList.add("active-fast");
+    speedVal.textContent = `${sp.kmh}km/h`;
+    speedVal.style.color = "#ff4444";
+  }
+
+  // Canvasも更新（照準を再描画）
+  drawScene();
+}
+
+// ============================================================
 // 15. ゲームロジック
 // ============================================================
-function calcHitResult(batter, pitcher) {
-  const strikeChance = 0.35 + pitcher.pitch / 400;
+
+// [v4.0] コース・球速を考慮した判定
+function calcHitResult(batter, pitcher, course, speed) {
+  const cp = COURSE_PARAMS[course || "center"];
+  const sp = SPEED_PARAMS[speed  || "normal"];
+
+  // ストライク確率（球速が速いほど高い、コースが端ほど少し高い）
+  const baseStrikeChance = 0.35 + pitcher.pitch / 400 + sp.strikeBonus;
   const roll = Math.random();
 
-  if (roll < (1 - strikeChance) * 0.5) return { type: "ball" };
+  // ボール判定（コースが端ほどボールになりやすい）
+  const ballThreshold = (1 - baseStrikeChance) * 0.5 + cp.ballBonus;
+  if (roll < ballThreshold) return { type: "ball" };
 
-  const lookChance = 0.18 + (100 - batter.meet) / 400;
+  // 見逃しストライク
+  const lookChance = ballThreshold + 0.18 + (100 - batter.meet) / 400;
   if (roll < lookChance) return { type: "strike_look" };
 
-  const missChance = lookChance + 0.12 + (100 - batter.meet) / 500;
+  // 空振り（球速が速いほど空振りしやすい）
+  const missChance = lookChance + 0.12 + (100 - batter.meet) / 500 + (sp.hitBonus < 0 ? Math.abs(sp.hitBonus) * 0.3 : 0);
   if (roll < missChance) return { type: "strike_swing" };
 
+  // 打撃判定（コースが端・球速が速いほど打ちにくい）
   const contact  = (batter.meet + batter.pow) / 200;
   const pitchDef = pitcher.pitch / 100;
+  const coursePenalty = cp.hitPenalty;
+  const speedBonus    = sp.hitBonus;
   const hitRoll  = Math.random();
 
-  const hrChance = (batter.pow / 100) * 0.12 * (1 - pitchDef * 0.4);
+  const hrChance  = (batter.pow / 100) * 0.12 * (1 - pitchDef * 0.4) * (1 - coursePenalty * 0.5) * (1 + speedBonus * 0.3);
   if (hitRoll < hrChance) return { type: "homerun" };
 
-  const hitChance = contact * 0.55 * (1 - pitchDef * 0.3);
+  const hitChance = contact * 0.55 * (1 - pitchDef * 0.3) * (1 - coursePenalty) * (1 + speedBonus);
   if (hitRoll < hrChance + hitChance) {
     const r = Math.random();
     if (r < 0.08) return { type: "triple" };
@@ -973,34 +1114,41 @@ function advanceRunners(bases) {
 }
 
 // ============================================================
-// 16. メインゲームフロー（共通）
+// 16. メインゲームフロー
 // ============================================================
 let actionBtnLocked = false;
 
 // ============================================================
-// [FIX 4/5] ピッチャーモード：プレイヤーが投球、CPUが打撃
+// ピッチャーモード：コース・球速を選んで投球
 // ============================================================
 async function doPitcherMode() {
   if (actionBtnLocked || G.phase === "GAMEOVER") return;
   actionBtnLocked = true;
   document.getElementById("pitch-btn").disabled = true;
+  // パネルボタンも無効化
+  document.querySelectorAll(".sel-btn").forEach(b => b.disabled = true);
 
   G.phase = "PITCHING";
-  say("pitch");
 
-  // 1. 投球モーション（プレイヤー操作）
+  // [v4.0] コース・球速に応じた実況
+  sayPitchComment();
+
+  const cp = COURSE_PARAMS[PITCH_CONFIG.course];
+  const sp = SPEED_PARAMS[PITCH_CONFIG.speed];
+
+  // 1. 投球モーション
   await new Promise(res => animatePitch(res));
-  await sleep(250);
+  await sleep(200);
 
-  // 2. CPU判定
+  // 2. CPU判定（コース・球速を渡す）
   const batter  = currentBatter();
   const pitcher = currentPitcher();
-  const result  = calcHitResult(batter, pitcher);
+  const result  = calcHitResult(batter, pitcher, PITCH_CONFIG.course, PITCH_CONFIG.speed);
 
-  // 3. CPUスイング
+  // 3. CPUスイング（コースオフセット付き）
   const isSwing = !["ball", "strike_look"].includes(result.type);
-  await new Promise(res => animateSwing(isSwing, res));
-  await sleep(350);
+  await new Promise(res => animateSwing(isSwing, res, cp.xOffset));
+  await sleep(300);
 
   // 4. 結果処理
   await handleResult(result);
@@ -1014,11 +1162,13 @@ async function doPitcherMode() {
   if (G.phase !== "GAMEOVER") {
     actionBtnLocked = false;
     document.getElementById("pitch-btn").disabled = false;
+    document.querySelectorAll(".sel-btn").forEach(b => b.disabled = false);
+    updatePitcherPanel();
   }
 }
 
 // ============================================================
-// [FIX 4/5] バッターモード：CPUが投球、プレイヤーがスイング操作
+// バッターモード：CPUが投球、プレイヤーがスイング操作
 // ============================================================
 async function doBatterMode() {
   if (actionBtnLocked || G.phase === "GAMEOVER") return;
@@ -1035,18 +1185,16 @@ async function doBatterMode() {
   await sleep(200);
 
   // 2. ボールが飛んでくる間にプレイヤーがスイングタイミングを決める
-  swingReady = true;
+  swingReady = false;
   swingPressed = false;
 
   const batter  = currentBatter();
   const pitcher = currentPitcher();
 
-  // ボールがホームベースに向かうアニメーション（この間にスイングボタンを押す）
-  const ballTravelMs = 600 + Math.floor((100 - pitcher.pitch) * 3); // 速いピッチャーほど短い
-  const swingWindowStart = ballTravelMs * 0.35; // スイング受付開始（35%〜75%）
+  const ballTravelMs = 600 + Math.floor((100 - pitcher.pitch) * 3);
+  const swingWindowStart = ballTravelMs * 0.35;
   const swingWindowEnd   = ballTravelMs * 0.75;
 
-  // ボール飛来アニメーション開始
   const ballPromise = new Promise(res => {
     let frame = 0;
     const totalFrames = Math.round(ballTravelMs / 16.7);
@@ -1068,7 +1216,6 @@ async function doBatterMode() {
       anim.ball.trail.push({ x: anim.ball.x, y: anim.ball.y });
       if (anim.ball.trail.length > 8) anim.ball.trail.shift();
 
-      // スイング受付ウィンドウ内でボタンが押されたらスイング
       const elapsed = (frame / totalFrames) * ballTravelMs;
       if (swingPressed && elapsed >= swingWindowStart && elapsed <= swingWindowEnd) {
         anim.batter.state = "swing";
@@ -1090,8 +1237,8 @@ async function doBatterMode() {
     anim.rafId = requestAnimationFrame(step);
   });
 
-  // ヒント表示
   say("batter_hint");
+  swingReady = true;
   if (swingBtn) swingBtn.disabled = false;
 
   await ballPromise;
@@ -1103,24 +1250,15 @@ async function doBatterMode() {
   // 3. タイミング判定
   let result;
   if (!swingPressed) {
-    // 見逃し
+    const baseResult = calcHitResult(batter, pitcher);
+    result = baseResult.type === "ball" ? { type: "ball" } : { type: "strike_look" };
+  } else {
     const baseResult = calcHitResult(batter, pitcher);
     if (baseResult.type === "ball") {
-      result = { type: "ball" };
-    } else {
-      result = { type: "strike_look" };
-    }
-  } else {
-    // スイングあり → CPU判定ベースで少しタイミングボーナス
-    const baseResult = calcHitResult(batter, pitcher);
-    if (["ball"].includes(baseResult.type)) {
-      // ボール球を振った
       result = { type: "strike_swing" };
-    } else if (["strike_look"].includes(baseResult.type)) {
-      // ストライクを振った → ミスになりやすいが少しチャンス
+    } else if (baseResult.type === "strike_look") {
       result = Math.random() < 0.3 ? { type: "single" } : { type: "strike_swing" };
     } else {
-      // 打てる球を振った → 結果はCPU判定そのまま（タイミング良ければ）
       result = baseResult;
     }
   }
@@ -1383,19 +1521,23 @@ function startGame(mode) {
   anim.batter.state    = "ready";
   anim.fielder.visible = false;
 
-  // モードに応じてボタンを切り替え
-  const pitchBtn = document.getElementById("pitch-btn");
-  const swingBtn = document.getElementById("swing-btn");
+  const pitchBtn  = document.getElementById("pitch-btn");
+  const swingBtn  = document.getElementById("swing-btn");
   const modeLabel = document.getElementById("mode-label");
+  const pitcherPanel = document.getElementById("pitcher-panel");
 
   if (G.playerMode === "pitcher") {
     pitchBtn.style.display = "inline-block";
     if (swingBtn) swingBtn.style.display = "none";
-    if (modeLabel) modeLabel.textContent = "⚾ ピッチャーモード：ボタンを押して投球！";
+    if (modeLabel) modeLabel.textContent = "コース・球速を選んで ⚾ PITCH ！";
+    if (pitcherPanel) pitcherPanel.style.display = "flex";
+    // デフォルト選択を適用
+    updatePitcherPanel();
   } else {
     pitchBtn.style.display = "none";
     if (swingBtn) swingBtn.style.display = "inline-block";
     if (modeLabel) modeLabel.textContent = "🏏 バッターモード：ボールが来たらスイング！";
+    if (pitcherPanel) pitcherPanel.style.display = "none";
   }
 
   pitchBtn.disabled = false;
@@ -1423,7 +1565,7 @@ function startGame(mode) {
 document.getElementById("start-pitcher-btn").addEventListener("click", () => startGame("pitcher"));
 document.getElementById("start-batter-btn").addEventListener("click",  () => startGame("batter"));
 
-// リトライ（前回のモードで再開）
+// リトライ
 document.getElementById("retry-btn").addEventListener("click", () => startGame(G.playerMode));
 
 // ピッチャーモード：PITCHボタン
@@ -1446,6 +1588,24 @@ document.getElementById("field-canvas").addEventListener("click", () => {
     if (swingReady) swingPressed = true;
     else if (!actionBtnLocked) doBatterMode();
   }
+});
+
+// [v4.0] コース選択ボタン
+document.querySelectorAll("#course-btns .sel-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    if (actionBtnLocked) return;
+    PITCH_CONFIG.course = btn.dataset.course;
+    updatePitcherPanel();
+  });
+});
+
+// [v4.0] 球速選択ボタン
+document.querySelectorAll("#speed-btns .sel-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    if (actionBtnLocked) return;
+    PITCH_CONFIG.speed = btn.dataset.speed;
+    updatePitcherPanel();
+  });
 });
 
 // ============================================================

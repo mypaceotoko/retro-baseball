@@ -18,6 +18,8 @@
       --red:     #cc2200;
       --white:   #ffffff;
       --black:   #111111;
+      --blue:    #2266cc;
+      --orange:  #e07800;
       --pixel:   "Press Start 2P", monospace;
     }
 
@@ -114,8 +116,8 @@
       cursor: not-allowed;
     }
     .pixel-btn.green  { background: var(--lime); color: #000; }
-    .pixel-btn.blue   { background: #2266cc; color: #fff; }
-    .pixel-btn.orange { background: #e07800; color: #fff; }
+    .pixel-btn.blue   { background: var(--blue); color: #fff; }
+    .pixel-btn.orange { background: var(--orange); color: #fff; }
     .pixel-btn.big    { font-size: clamp(12px, 3.5vw, 18px); padding: 18px 40px; }
     .pixel-btn.action { font-size: clamp(13px, 4vw, 20px); padding: 20px 50px; }
 
@@ -236,6 +238,153 @@
       white-space: pre-wrap;
     }
 
+    /* ===== OUTS ===== */
+    .outs-dots { display: flex; gap: 8px; }
+    .out-dot {
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      border: 2px solid var(--red);
+      background: transparent;
+    }
+    .out-dot.filled { background: var(--red); }
+
+    /* ===== COUNT ===== */
+    .count-row { display: flex; gap: 5px; align-items: center; }
+    .count-dot {
+      width: 11px; height: 11px;
+      border-radius: 50%;
+      border: 2px solid #555;
+    }
+    .count-dot.ball   { border-color: var(--lime); }
+    .count-dot.ball.on   { background: var(--lime); }
+    .count-dot.strike { border-color: var(--yellow); }
+    .count-dot.strike.on { background: var(--yellow); }
+
+    /* ===== PITCHER CONTROL PANEL ===== */
+    #pitcher-panel {
+      display: none; /* ピッチャーモード時のみ表示 */
+      width: 100%;
+      background: #0a0a1a;
+      border: 2px solid var(--blue);
+      box-shadow: 0 0 12px rgba(34,102,204,0.3);
+      padding: 10px 12px;
+      gap: 8px;
+      flex-direction: column;
+    }
+    .panel-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .panel-label {
+      color: #88aaff;
+      font-size: clamp(7px, 1.8vw, 9px);
+      letter-spacing: 1px;
+      min-width: 48px;
+      flex-shrink: 0;
+    }
+    .select-btns {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    /* コース・球速選択ボタン */
+    .sel-btn {
+      background: #1a1a2a;
+      color: #aaa;
+      border: 2px solid #444;
+      padding: 7px 12px;
+      font-family: var(--pixel);
+      font-size: clamp(7px, 1.8vw, 9px);
+      cursor: pointer;
+      box-shadow: 2px 2px 0 #000;
+      transition: all 0.1s;
+      letter-spacing: 1px;
+      line-height: 1.5;
+      text-align: center;
+    }
+    .sel-btn:hover {
+      border-color: #888;
+      color: #fff;
+    }
+    .sel-btn:active {
+      transform: translate(1px, 1px);
+      box-shadow: 1px 1px 0 #000;
+    }
+    /* 選択中 */
+    .sel-btn.selected-course {
+      background: #1a3a6a;
+      border-color: #4488ff;
+      color: #88ccff;
+      box-shadow: 0 0 8px rgba(68,136,255,0.5), 2px 2px 0 #000;
+    }
+    .sel-btn.selected-speed {
+      background: #3a1a00;
+      border-color: #ff8800;
+      color: #ffcc66;
+      box-shadow: 0 0 8px rgba(255,136,0,0.5), 2px 2px 0 #000;
+    }
+    /* コースインジケーター（ストライクゾーン可視化） */
+    #course-indicator {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+    .zone-box {
+      width: 22px;
+      height: 28px;
+      border: 1.5px solid #333;
+      background: #111;
+      position: relative;
+      transition: all 0.15s;
+    }
+    .zone-box.zone-active {
+      background: rgba(68,136,255,0.25);
+      border-color: #4488ff;
+      box-shadow: 0 0 6px rgba(68,136,255,0.4);
+    }
+    .zone-ball-dot {
+      position: absolute;
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #fff;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+    .zone-active .zone-ball-dot {
+      opacity: 1;
+      background: #88ccff;
+      box-shadow: 0 0 4px #4488ff;
+    }
+    /* 球速メーター */
+    #speed-meter {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .speed-bar {
+      height: 8px;
+      border-radius: 2px;
+      background: #333;
+      transition: all 0.2s;
+    }
+    .speed-bar.s1 { width: 20px; }
+    .speed-bar.s2 { width: 36px; }
+    .speed-bar.s3 { width: 52px; }
+    .speed-bar.active-slow   { background: #44cc88; box-shadow: 0 0 4px #44cc88; }
+    .speed-bar.active-normal { background: #ffcc00; box-shadow: 0 0 4px #ffcc00; }
+    .speed-bar.active-fast   { background: #ff4444; box-shadow: 0 0 4px #ff4444; }
+    #speed-value {
+      color: #ffcc66;
+      font-size: clamp(7px, 1.8vw, 9px);
+      min-width: 50px;
+    }
+
     /* ===== MODE LABEL ===== */
     #mode-label {
       width: 100%;
@@ -254,31 +403,6 @@
       padding: 10px 0 6px;
       gap: 16px;
     }
-
-    /* ===== OUTS ===== */
-    .outs-dots { display: flex; gap: 8px; }
-    .out-dot {
-      width: 14px; height: 14px;
-      border-radius: 50%;
-      /* [FIX 3] アウト：赤系（野球の慣例） */
-      border: 2px solid var(--red);
-      background: transparent;
-    }
-    .out-dot.filled { background: var(--red); }
-
-    /* ===== COUNT ===== */
-    .count-row { display: flex; gap: 5px; align-items: center; }
-    .count-dot {
-      width: 11px; height: 11px;
-      border-radius: 50%;
-      border: 2px solid #555;
-    }
-    /* [FIX 3] ボール：緑系 */
-    .count-dot.ball   { border-color: var(--lime); }
-    .count-dot.ball.on   { background: var(--lime); }
-    /* [FIX 3] ストライク：黄色系（野球の慣例） */
-    .count-dot.strike { border-color: var(--yellow); }
-    .count-dot.strike.on { background: var(--yellow); }
 
     /* ===== RESULT ===== */
     #result-screen {
@@ -336,6 +460,8 @@
       .sb-table th, .sb-table td { padding: 3px 1px; min-width: 14px; }
       .sb-table .team-name { max-width: 60px; }
       .mode-btns { flex-direction: column; align-items: center; }
+      .panel-row { gap: 6px; }
+      .sel-btn { padding: 6px 9px; }
     }
   </style>
 </head>
@@ -350,7 +476,6 @@
     9回制・完全アニメーション
   </div>
 
-  <!-- [FIX 3/4] モード選択 -->
   <div class="mode-select-area">
     <div class="mode-select-label">▼ モードを選んでください ▼</div>
     <div class="mode-btns">
@@ -361,8 +486,8 @@
         🏏 バッターで<br>プレイ
       </button>
     </div>
-    <div style="color:#555; font-size:8px; margin-top:4px; text-align:center; line-height:1.8;">
-      ピッチャー：ボタンで投球、CPUが打撃<br>
+    <div style="color:#555; font-size:8px; margin-top:4px; text-align:center; line-height:2;">
+      ピッチャー：コース＆球速を選んで投球！<br>
       バッター：CPUが投球、タイミングでスイング
     </div>
   </div>
@@ -396,7 +521,6 @@
     <div class="status-item">
       <span class="status-label">OUT</span>
       <div class="outs-dots">
-        <!-- [FIX 3] アウトは赤（CSSで定義） -->
         <div class="out-dot" id="out0"></div>
         <div class="out-dot" id="out1"></div>
       </div>
@@ -412,7 +536,6 @@
     <div class="status-item">
       <span class="status-label">STRIKE</span>
       <div class="count-row">
-        <!-- [FIX 3] ストライクは黄色（CSSで定義） -->
         <div class="count-dot strike" id="s0"></div>
         <div class="count-dot strike" id="s1"></div>
       </div>
@@ -442,6 +565,44 @@
   <!-- COMMENTARY -->
   <div id="commentary">
     <div id="commentary-text">⚾ プレイボール！</div>
+  </div>
+
+  <!-- ===== PITCHER CONTROL PANEL (ピッチャーモード専用) ===== -->
+  <div id="pitcher-panel">
+
+    <!-- コース選択行 -->
+    <div class="panel-row">
+      <span class="panel-label">コース</span>
+      <div class="select-btns" id="course-btns">
+        <button class="sel-btn" data-course="inner">⬅ 内角</button>
+        <button class="sel-btn" data-course="center">真ん中</button>
+        <button class="sel-btn" data-course="outer">外角 ➡</button>
+      </div>
+      <!-- ゾーン可視化 -->
+      <div id="course-indicator">
+        <div class="zone-box" id="zone-inner"><div class="zone-ball-dot"></div></div>
+        <div class="zone-box" id="zone-center"><div class="zone-ball-dot"></div></div>
+        <div class="zone-box" id="zone-outer"><div class="zone-ball-dot"></div></div>
+      </div>
+    </div>
+
+    <!-- 球速選択行 -->
+    <div class="panel-row">
+      <span class="panel-label">球速</span>
+      <div class="select-btns" id="speed-btns">
+        <button class="sel-btn" data-speed="slow">🐢 遅い</button>
+        <button class="sel-btn" data-speed="normal">⚾ 普通</button>
+        <button class="sel-btn" data-speed="fast">🔥 速い</button>
+      </div>
+      <!-- 球速メーター -->
+      <div id="speed-meter">
+        <div class="speed-bar s1" id="speed-bar1"></div>
+        <div class="speed-bar s2" id="speed-bar2"></div>
+        <div class="speed-bar s3" id="speed-bar3"></div>
+        <span id="speed-value">---</span>
+      </div>
+    </div>
+
   </div>
 
   <!-- MODE LABEL -->
