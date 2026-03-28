@@ -48,6 +48,7 @@ const PLAYER_POOL = [
   { name:"山田 哲人",            pow:85, meet:90, spd:92, pitch:20, def:90 },
   { name:"村上 宗隆",            pow:96, meet:87, spd:72, pitch:20, def:80 },
   { name:"佐々木 朗希",          pow:50, meet:42, spd:55, pitch:98, def:72 },
+  { name:"浜野 滋",              pow:82, meet:88, spd:85, pitch:78, def:83 },
 ];
 
 // ============================================================
@@ -64,6 +65,7 @@ const TEAM_DEFS = [
   { name:"仙台イーグルス",         color:"#8b1a1a", uni:"#8b1a1a" },
   { name:"ニューヨーク・ヤンキース",color:"#1a1a3a", uni:"#1a1a3a" },
   { name:"ロサンゼルス・ドジャース",color:"#005fa8", uni:"#005fa8" },
+  { name:"ブリーズ",               color:"#00a878", uni:"#00a878" },
 ];
 
 // ============================================================
